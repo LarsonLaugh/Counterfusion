@@ -133,9 +133,9 @@ def generate_byprob(length, prob_alpha, prob_beta, random_value=False, alpha=0.5
         :param prob_Alpha: The probability for interaction Alpha to appear in the sequence.
         :param prob_Beta: The probability for interaction Beta to appear in the sequence.
         :param random_value: A boolean indicating whether interaction strengths should be randomized within defined ranges.
-        :param alpha: (Optional) If random_value is False, specify the strength of interaction Alpha. If random_value is True, provide upper and lower bounds for Alpha interaction strength.
-        :param beta: (Optional) If random_value is False, specify the strength of interaction Beta. If random_value is True, provide upper and lower bounds for Beta interaction strength.
-        :param delta: (Optional) If random_value is False, specify the strength of interaction Delta. If random_value is True, provide upper and lower bounds for Delta interaction strength.
+        :param alpha: If random_value is False, specify the strength of interaction Alpha. If random_value is True, provide upper and lower bounds for Alpha interaction strength.
+        :param beta: If random_value is False, specify the strength of interaction Beta. If random_value is True, provide upper and lower bounds for Beta interaction strength.
+        :param delta: If random_value is False, specify the strength of interaction Delta. If random_value is True, provide upper and lower bounds for Delta interaction strength.
 
         :return: A sequence of interactions, including their types (Alpha, Beta, Delta) and values of strength.
     """
