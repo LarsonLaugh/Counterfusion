@@ -1,8 +1,6 @@
-# Counterfusion
-
 # Interaction Matrix Toolbox
 
-The Interaction Matrix Toolbox is a set of Python functions for working with interaction matrices in the context of a scientific project. These functions allow you to create, manipulate, and visualize interaction matrices, which are used to represent interactions between entities.
+The Interaction Matrix Toolbox is a set of Python functions for working with interaction matrices in the context of a scientific project. These functions allow you to create, manipulate, and visualize interaction matrices, which are used to represent interactions between flows.
 
 ## Functions
 
