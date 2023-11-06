@@ -36,11 +36,20 @@ Functions to create specific interaction matrices: Beta, Alpha, and Delta. These
 
 Example usage:
 ```python
-# Generate a sequence of interactions by specifying numbers
-seq = generate_bynumber(num_alpha=10, num_beta=5, num_delta=7, random_value=True, alpha=[0.2, 0.8], beta=0.6, delta=0.4)
+# Generate a sequence of interactions by specifying numbers and bounds of randomized values
+seq = generate_bynumber(num_alpha=10, num_beta=5, num_delta=7, random_value=True,alpha=[0.2, 0.8], beta=[0.3, 0.6], delta=[0.1, 0.5])
 
-# Generate a sequence of interactions by specifying probabilities
+# Generate a sequence of interactions by specifying numbers and specific values
+seq = generate_bynumber(100,10,50,random_value=False,alpha=0.2,beta=0.3,delta=0.6)
+
+# Generate a sequence of interactions by specifying probabilities and bounds of randomized values
 seq = generate_byprob(length=200, prob_alpha=0.3, prob_beta=0.4, random_value=True, alpha=[0.2, 0.8], beta=[0.3, 0.6], delta=[0.1, 0.5])
+
+# Generate a sequence of interactions by specifying probabilities and specific values
+seq = generate_byprob(1000,0.02,0.2,random_value=False,alpha=0.2,beta=0.3,delta=0.6)
+
+# Calcuate the combined interaction matrix of a given sequence "seq"
+combined_interaction = fusion(seq)
 
 # Visualize the sequence of interactions
 visualseq(seq)
