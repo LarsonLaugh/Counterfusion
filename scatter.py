@@ -175,14 +175,17 @@ def generate_bynumber(num_alpha, num_beta, num_delta, random_value=False, alpha=
     tot_num = num_alpha + num_beta + num_delta
 
     # Create an empty sequence with placeholders for Alpha, Beta, and Delta interactions.
-    seq = np.array([('A', 0)] * tot_num)
+    seq = np.array([('A', 0.1)] * tot_num)
 
     if random_value is False:
         # If random_value is False, set interaction strengths directly.
         if isinstance(alpha, (int, float)) or isinstance(beta, (int, float)) or isinstance(delta, (int, float)):
-            seq[:num_alpha] = [('A', alpha)] * num_alpha
-            seq[num_alpha:num_alpha + num_beta] = [('B', beta)] * num_beta
-            seq[tot_num - num_delta:tot_num] = [('D', delta)] * num_delta
+            if num_alpha != 0:
+                seq[:num_alpha] = [('A', alpha)] * num_alpha
+            if num_beta != 0:
+                seq[num_alpha:num_alpha + num_beta] = [('B', beta)] * num_beta
+            if num_delta !=0:
+                seq[tot_num - num_delta:tot_num] = [('D', delta)] * num_delta
             np.random.shuffle(seq)
         else:
             raise ValueError("alpha, beta, delta should be either integer or float if random_value==False")
@@ -191,7 +194,8 @@ def generate_bynumber(num_alpha, num_beta, num_delta, random_value=False, alpha=
         if isinstance(alpha, list) and isinstance(beta, list) and isinstance(delta, list) and len(alpha) == len(
                 beta) == len(delta) == 2:
             rng = np.random.default_rng()
-            seq[:num_alpha] = [('A', alpha[0] + (alpha[1] - alpha[0]) * rng.random()) for i in range(num_alpha)]
+            if num_alpha != 0:
+                seq[:num_alpha] = [('A', alpha[0] + (alpha[1] - alpha[0]) * rng.random()) for i in range(num_alpha)]
             seq[num_alpha:num_alpha + num_beta] = [('B', beta[0] + (beta[1] - beta[0]) * rng.random()) for i in
                                                    range(num_beta)]
             seq[tot_num - num_delta:tot_num] = [('D', delta[0] + (delta[1] - delta[0]) * rng.random()) for i in
