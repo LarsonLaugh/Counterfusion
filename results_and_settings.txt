@@ -1,8 +1,8 @@
 Settings:
-Solution Vector: [9.99999579e-01 9.98251918e-01 2.47940352e-06]
+Solution Vector: [0.99932506 0.94319785 0.00248294]
 Alpha Value: 0
-Beta Value: 1.0
-Delta Value: 0.9999
+Beta Value: 0.2
+Delta Value: 1.0
 Current Magnitude (I): 1
 na1: 0
 na2: 0

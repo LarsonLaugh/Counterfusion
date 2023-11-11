@@ -3,11 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def calculator(alpha_value,beta_value,delta_value,num_alpha=[1]*6,num_beta=[1]*6,num_delta=[1]*6,I=1):
-    # Interaction settings between adjacent contacts
-    # Define your own settings here
-    # Initialize numbers of alpha, beta, and delta contacts
-
-    #=====================================================================================================================================
     # generate transformation matrix between adjacent contacts
     M1 = fusion(generate_bynumber(num_alpha=na1, num_beta=nb1, num_delta=nd1, random_value=False, alpha=alpha_value, beta=beta_value, delta=delta_value))[0]
     M2 = fusion(generate_bynumber(num_alpha=na2, num_beta=nb2, num_delta=nd2, random_value=False, alpha=alpha_value, beta=beta_value, delta=delta_value))[0]
@@ -18,7 +13,6 @@ def calculator(alpha_value,beta_value,delta_value,num_alpha=[1]*6,num_beta=[1]*6
 
     M2 = M2[np.ix_([0,2],[0,2])]
     M3 = M3[np.ix_([0,2],[0,2])]
-
     # Perform calculations
     M11 = 3 - (M6[0, 2] + M6[1, 2] + M1[2, 0] + M1[2, 1] + M1[2, 2] * M2[1, 0] * (M1[0, 0] + M1[0, 1]) / (1 - M2[1, 0] * M1[0, 2]))
     M12 = -(M2[1, 1] * M1[2, 2]) / (1 - M2[1, 0] * M1[0, 2])
@@ -34,6 +28,7 @@ def calculator(alpha_value,beta_value,delta_value,num_alpha=[1]*6,num_beta=[1]*6
     M32 = -((M4[1, 1] * M1[1, 2] * M2[1, 1]) / (1 - M2[1, 0] * M1[0, 2]) + M4[1, 0] * M3[0, 0] + M4[1, 0] * M3[0, 1] * M4[2, 0] * M3[0, 0] / (1 - M4[2, 0] * M3[0, 1]) + M4[1, 0] * M3[0, 1] * M4[2, 1] * M1[1, 2] * M2[1, 1] / ((1 - M4[2, 0] * M3[0, 1]) * (1 - M2[1, 0] * M1[0, 2])) + M4[0, 1] * M1[1, 2] * M2[1, 1] / (1 - M2[1, 0] * M1[0, 2]) + M4[0, 0] * M3[0, 0] + M4[0, 0] * M3[0, 1] * M4[2, 0] * M3[0, 0] / (1 - M4[2, 0] * M3[0, 1]) + M4[0, 0] * M3[0, 1] * M4[2, 1] * M1[1, 2] * M2[1, 1] / ((1 - M4[2, 0] * M3[0, 1]) * (1 - M2[1, 0] * M1[0, 2])))
     M33 = 3 - (M4[0, 2] + M4[1, 2] + M5[2, 0] + M5[2, 1] + M4[1, 0] * M3[0, 1] * M4[2, 2] / (1 - M4[2, 0] * M3[0, 1]) + M4[0, 0] * M3[0, 1] * M4[2, 2] / (1 - M4[2, 0] * M3[0, 1]))
     M34 = -M5[2, 2]
+
     M41 = -M6[2, 2]
     M42 = 0
     M43 = -(M5[0, 0] + M5[0, 1] + M5[1, 0] + M5[1, 1])
@@ -67,9 +62,13 @@ def calculator(alpha_value,beta_value,delta_value,num_alpha=[1]*6,num_beta=[1]*6
     }
     return S, settings
 
+
+# Interaction settings between adjacent contacts
+# Define your own settings here
+# Initialize numbers of alpha, beta, and delta contacts
 alpha_value = 0
-# beta_value = 0.8
-delta_value = 0.9999
+beta_value = 0.2
+# delta_value = 0.9999
 
 na1 = na2 = na3 = na4 = na5 = na6 = 0
 
@@ -85,12 +84,10 @@ na = [na1,na2,na3,na4,na5,na6]
 nb = [nb1,nb2,nb3,nb4,nb5,nb6]
 nd = [nd1,nd2,nd3,nd4,nd5,nd6]
 V1, V2, V4 = [], [], []
-beta_list = np.linspace(0,1,1000)
-# delta_list = np.linspace(0,1,10)
+# beta_list = np.linspace(0,1,1000)
+delta_list = np.linspace(0,1,1000)
 
-
-
-for beta_value in beta_list:
+for delta_value in delta_list:
     mu, settings = calculator(alpha_value=0,beta_value=beta_value,delta_value=delta_value,num_alpha=[1]*6,num_beta=[1]*6,num_delta=[1]*6)
     V1.append(mu[0])
     V2.append(mu[1])
@@ -106,12 +103,18 @@ with open("results_and_settings.txt", "w") as file:
     # Write a separator for clarity
     file.write("\n")
 
-plt.scatter(beta_list,V2,s=10)
-plt.plot(beta_list,V2)
-plt.scatter(beta_list,V1,s=10)
-plt.plot(beta_list,V1)
-plt.scatter(beta_list,V4,s=10)
-plt.plot(beta_list,V4)
+# plt.scatter(beta_list,V2,s=10)
+# plt.plot(beta_list,V2)
+# plt.scatter(beta_list,V1,s=10)
+# plt.plot(beta_list,V1)
+# plt.scatter(beta_list,V4,s=10)
+# plt.plot(beta_list,V4)
+plt.scatter(delta_list,V2,s=10)
+plt.plot(delta_list,V2)
+plt.scatter(delta_list,V1,s=10)
+plt.plot(delta_list,V1)
+plt.scatter(delta_list,V4,s=10)
+plt.plot(delta_list,V4)
 plt.show()
 
 # Test data

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import copy
 
 # =======================================================================================================
 # Warning: modifying these functions may lead to incorrect results!
@@ -208,7 +209,6 @@ def generate_bynumber(num_alpha, num_beta, num_delta, random_value=False, alpha=
 def fusion(seq):
     # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
     matrices = []
-
     # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
     for t, v in zip(seq[:, 0], seq[:, 1]):
         if t == 'A':
@@ -232,6 +232,47 @@ def fusion(seq):
     # Return the final merged matrix 'res' and the input sequence 'seq'.
     return res, seq
 
+def states_check(seq,init_state):
+    # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
+    matrices = []
+    ths = []
+    states = np.zeros([3, len(seq)+1])
+
+    # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
+    for t, v in zip(seq[:, 0], seq[:, 1]):
+        if t == 'A':
+            # Create an Alpha matrix with the given strength 'v' and append it to the 'matrices' list.
+            matrices.append(Alpha(float(v)))
+        elif t == 'B':
+            # Create a Beta matrix with the given strength 'v' and append it to the 'matrices' list.
+            matrices.append(Beta(float(v)))
+        else:
+            # Create a Delta matrix with the given strength 'v' and append it to the 'matrices' list.
+            matrices.append(Delta(float(v)))
+
+    # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
+    mat0 = matrices[0]
+    for mat1 in matrices[1:]:
+        omega = merge(mat0, mat1)
+        ths.append(theta(mat0, mat1))
+        mat0 = omega # omega connects the initial and final states by the end of this for-loop.
+
+    end_state = np.dot(omega, init_state)
+    temp_state = copy.deepcopy(init_state)
+    # calculate all the states between initial and final states
+    for i, th in enumerate(ths[::-1]):
+        newstate= np.dot(th,temp_state)
+        states[:,-i-2] = newstate
+        temp_state[2] = newstate[2]
+
+    # connect intermediate states with initial and final states
+    states[0,0] = init_state[0]
+    states[1,0] = init_state[1]
+    states[2,-1] = init_state[2]
+    states[0,-1] = end_state[0]
+    states[1,-1] = end_state[1]
+    states[2,0] = end_state[2]
+    return states, seq
 
 def visualseq(seq):
     """
