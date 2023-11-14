@@ -290,3 +290,4 @@ def visualseq(seq):
     plt.xlabel('# of scattering events')
     plt.ylabel('Scattering parameter')
     plt.show()
+

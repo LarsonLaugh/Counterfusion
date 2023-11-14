@@ -1,0 +1,202 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import copy
+
+class effective_matrix:
+    def __init__(self,sequence,m,mf):
+        self.seq = sequence
+        self.m = m
+        self.mf = mf
+    def get_seq(self):
+        return self.seq
+    def trans_mat(self):
+        seq = self.seq
+        m = self.m
+        mf = self.mf
+        matrices = []
+        # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
+        for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
+            matrix = scatter_matrix(m, id1, id2, v)
+            matrices.append(matrix)
+        # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
+        mat0 = matrices[0]
+        # Merge the matrices in 'matrices' list sequentially and update 'mat0' with the result.
+        for mat1 in matrices[1:]:
+            res = merge(mat0, mat1, mf)
+            mat0 = res
+        # Return the final merged matrix 'res' and the input sequence 'seq'.
+        return res
+
+#================================================================
+#core functions
+
+def pmatrix(Om1,Om2,mf):
+    m = Om1.shape[0]
+    p = np.zeros((m-mf,m-mf))
+    for k in range(m-mf):
+        for j in range(m-mf):
+            if j == k:
+                p[k,k] = 1-np.dot(Om2[k+mf,:mf],Om1[:mf,k+mf])
+            else:
+                p[k,j] = -np.dot(Om2[k+mf,:mf],Om1[:mf,j+mf])
+    return p
+
+def qmatrix(Om1,Om2,mf):
+    m = Om1.shape[0]
+    q = np.zeros((m-mf,mf))
+    for k in range(m-mf):
+        for j in range(mf):
+            q[k,j] = np.dot(Om2[k+mf,:mf],Om1[:mf,j])
+    return q
+
+def lmatrix(Om,mf):
+    Om_copy = copy.deepcopy(Om)
+    return Om_copy[mf:,mf:]
+
+def replace_colnum(matrix,col_num,col_replace):
+    matrix_copy = copy.deepcopy(matrix)
+    matrix_copy[:,col_num]=col_replace
+    return matrix_copy
+
+def det(matrix):
+    return np.linalg.det(matrix)
+
+def theta(Om1,Om2,mf):
+    m = Om1.shape[0]
+    th = np.zeros((m,m))
+    p = pmatrix(Om1, Om2, mf)
+    q = qmatrix(Om1, Om2, mf)
+    l = lmatrix(Om2, mf)
+    detp = det(p)
+    for k in range(m):
+        for i in range(m):
+            if k<mf and i<mf:
+                th[k,i] = Om1[k,i]+sum([Om1[k,j]*det(replace_colnum(p,j-mf,q[:,i]))/detp for j in range(mf,m)])
+            elif k<mf and i>=mf:
+                th[k,i] = sum([Om1[k,j]*det(replace_colnum(p,j-mf,l[:,i-mf]))/detp for j in range(mf,m)])
+            elif k>=mf and i<mf:
+                th[k,i] = det(replace_colnum(p,k-mf,q[:,i]))/detp
+            else:
+                th[k,i] = det(replace_colnum(p,k-mf,l[:,i-mf]))/detp
+    return th
+
+
+def merge(Om1,Om2,mf):
+    m = Om1.shape[0]
+    th = theta(Om1,Om2,mf)
+    Om3 = np.zeros((m,m))
+    for k in range(m):
+        for i in range(m):
+            if k<mf and i<mf:
+                Om3[k,i] = sum([Om2[k,j]*th[j,i] for j in range(mf)])
+            elif k<mf and i>=mf:
+                Om3[k,i] = sum([Om2[k,j]*th[j,i] for j in range(mf)])+Om2[k,i]
+            elif k>=mf and i<mf:
+                Om3[k,i] = sum([Om1[k,j]*th[j,i] for j in range(mf,m)])+Om1[k,i]
+            else:
+                Om3[k,i] = sum([Om1[k,j]*th[j,i] for j in range(mf,m)])
+    return Om3
+
+def scatter_matrix(m,id1,id2,value):
+    id1,id2 = int(id1),int(id2)
+    matrix = np.eye(m)
+    matrix[id1,id1] = 1-value/2
+    matrix[id1,id2] = value/2
+    matrix[id2,id2] = 1-value/2
+    matrix[id2,id1] = value/2
+    return matrix
+#====================================================================================
+
+
+#------------------------------------------------------------------------------------
+# helper functions
+def generate_bynumber():
+    return None
+
+
+def fusion(seq,m,mf):
+    # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
+    matrices = []
+    # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
+    for id1,id2,v in zip(seq[:, 0],seq[:, 1],seq[:,2]):
+        matrix = scatter_matrix(m,id1,id2,v)
+        matrices.append(matrix)
+    # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
+    mat0 = matrices[0]
+
+    # Merge the matrices in 'matrices' list sequentially and update 'mat0' with the result.
+    for mat1 in matrices[1:]:
+        res = merge(mat0, mat1, mf)
+        mat0 = res
+    # Return the final merged matrix 'res' and the input sequence 'seq'.
+    return res, seq
+
+def states_check(seq,init_state,mf):
+    # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
+    matrices = []
+    ths = []
+    m = len(init_state)
+    states = np.zeros([m, len(seq)+1])
+    # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
+    for id1,id2,v in zip(seq[:, 0],seq[:, 1],seq[:,2]):
+        matrix = scatter_matrix(m,id1,id2,v)
+        matrices.append(matrix)
+
+    # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
+    mat0 = matrices[0]
+    for mat1 in matrices[1:]:
+        omega = merge(mat0, mat1, mf)
+        ths.append(theta(mat0, mat1, mf))
+        mat0 = omega # omega connects the initial and final states by the end of this for-loop.
+
+    end_state = np.dot(omega, init_state)
+    temp_state = copy.deepcopy(init_state)
+    # calculate all the states between initial and final states
+    for i, th in enumerate(ths[::-1]):
+        newstate= np.dot(th,temp_state)
+        states[:,-i-2] = newstate
+        temp_state[2] = newstate[2]
+
+    # connect intermediate states with initial and final states
+    for i in range(mf):
+        states[i, 0] = init_state[i]
+        states[i,-1] = end_state[i]
+    for j in range(mf,m):
+        states[j,-1] = init_state[j]
+        states[j,0] = end_state[j]
+    return states, seq
+
+
+
+
+
+
+# test example
+init_state = [1,1,1,0.3,0.3]
+m = len(init_state)
+mf = 3
+seq_in_list = []
+for i in range(2):
+    seq_in_list.append([0,3,0.4])
+for i in range(2):
+    seq_in_list.append([0,3,0.3])
+for i in range(2):
+    seq_in_list.append([1,2,0.5])
+for i in range(2):
+    seq_in_list.append([0,3,0.4])
+for i in range(2):
+    seq_in_list.append([1,3,0.2])
+for i in range(2):
+    seq_in_list.append([2,3,0.4])
+seq = np.array(seq_in_list)
+states, _ = states_check(seq,init_state,mf)
+v1, v2, v3, v4, v5 = states[0,:],states[1,:],states[2,:], states[3,:], states[4,:]
+plt.plot(v1,color='y')
+plt.plot(v2,color='g')
+plt.plot(v3,color='m')
+plt.plot(v4,color='r')
+plt.plot(v5,color='b')
+plt.show()
+# print(fusion(seq,5,3)[0])
+# effmat = effective_matrix(seq,5,3)
+# print(effmat.trans_mat())
