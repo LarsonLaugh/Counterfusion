@@ -1,7 +1,12 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import copy
+import random
 
+
+# TODO: add this class to create a system consisting of electron reserviors (contacts) and interactions in between
+class system:
+    def __init__(self,diagram):
+        self.diagram = diagram
 class effective_matrix:
     def __init__(self,sequence,m,mf):
         self.seq = sequence
@@ -110,9 +115,20 @@ def scatter_matrix(m,id1,id2,value):
 
 #------------------------------------------------------------------------------------
 # helper functions
-def generate_bynumber():
-    return None
+# TODO: build this function to generate a sequence with given types and values
 
+def generate_bynumber(message):
+    '''
+    A "message" should be formatted into a nested list structure, e.g.,
+    [[0,1,0.4,3],[0,2,0.3,5],[1,2,0.5,3]]. Inside the first item [0,1,0.4,3], the first
+    two items 0 and 1 tell which two edge states participate, the third item 0.4 gives
+    the value for this matrix, the last item 3 represents the number of scattering events.
+    '''
+    seq_in_list = []
+    for m in message:
+        seq_in_list.extend([m[:3]]*m[3])
+        random.shuffle(seq_in_list)
+    return np.array(seq_in_list)
 
 def fusion(seq,m,mf):
     # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
@@ -167,36 +183,33 @@ def states_check(seq,init_state,mf):
     return states, seq
 
 
-
-
-
-
-# test example
-init_state = [1,1,1,0.3,0.3]
-m = len(init_state)
-mf = 3
-seq_in_list = []
-for i in range(2):
-    seq_in_list.append([0,3,0.4])
-for i in range(2):
-    seq_in_list.append([0,3,0.3])
-for i in range(2):
-    seq_in_list.append([1,2,0.5])
-for i in range(2):
-    seq_in_list.append([0,3,0.4])
-for i in range(2):
-    seq_in_list.append([1,3,0.2])
-for i in range(2):
-    seq_in_list.append([2,3,0.4])
-seq = np.array(seq_in_list)
-states, _ = states_check(seq,init_state,mf)
-v1, v2, v3, v4, v5 = states[0,:],states[1,:],states[2,:], states[3,:], states[4,:]
-plt.plot(v1,color='y')
-plt.plot(v2,color='g')
-plt.plot(v3,color='m')
-plt.plot(v4,color='r')
-plt.plot(v5,color='b')
-plt.show()
+# # test example
+# init_state = [1,1,1,0.3,0.3]
+# m = len(init_state)
+# mf = 3
+# seq_in_list = []
+# for i in range(2):
+#     seq_in_list.append([0,3,0.4])
+# for i in range(2):
+#     seq_in_list.append([0,2,0.3])
+# for i in range(2):
+#     seq_in_list.append([0,1,0.5])
+# for i in range(2):
+#     seq_in_list.append([1,3,0.4])
+# for i in range(2):
+#     seq_in_list.append([2,3,0.2])
+# for i in range(2):
+#     seq_in_list.append([3,4,0.4])
+# seq = np.array(seq_in_list)
+# # states, _ = states_check(seq,init_state,mf)
+# # v1, v2, v3, v4, v5 = states[0,:],states[1,:],states[2,:], states[3,:], states[4,:]
+# # plt.plot(v1,color='y')
+# # plt.plot(v2,color='g')
+# # plt.plot(v3,color='m')
+# # plt.plot(v4,color='r')
+# # plt.plot(v5,color='b')
+# # plt.show()
 # print(fusion(seq,5,3)[0])
-# effmat = effective_matrix(seq,5,3)
-# print(effmat.trans_mat())
+# # effmat = effective_matrix(seq,5,3)
+# # print(effmat.trans_mat())
+
