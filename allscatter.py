@@ -5,8 +5,30 @@ import random
 
 # TODO: add this class to create a system consisting of electron reserviors (contacts) and interactions in between
 class system:
-    def __init__(self,diagram):
+    def __init__(self,current,diagram):
+        ''' This diagram should be a list containing effective_matrix instances between adjacent contacts
+        along the forward-propagation direction.
+        '''
+        self.term_current = current
         self.diagram = diagram
+        self.m = diagram[0].trans_mat().shape[0]
+        self.num_term = len(diagram)
+    def mastermat(self,mf):
+        effective_matrices = self.diagram
+        num_term = self.num_term
+        mat = np.zeros((num_term,num_term))
+        for t in range(num_term):
+            premat, aftmat = effective_matrices[t - 1].trans_mat(), effective_matrices[t].trans_mat()
+            mat[t, t] = self.m - premat[:mf, mf:].sum() - aftmat[mf:, :mf].sum()
+            mat[t, t - 1] = -premat[:mf, :mf].sum()
+            if t == num_term-1:
+                mat[t, 0] = -aftmat[mf:, mf:].sum()
+            else:
+                mat[t, t + 1] = -aftmat[mf:, mf:].sum()
+        return mat
+    def solve(self,mf):
+        term_voltage = np.linalg.solve(self.mastermat(mf),self.term_current)
+        return term_voltage
 class effective_matrix:
     def __init__(self,sequence,m,mf):
         self.seq = sequence
@@ -110,6 +132,17 @@ def scatter_matrix(m,id1,id2,value):
     matrix[id2,id2] = 1-value/2
     matrix[id2,id1] = value/2
     return matrix
+
+
+def master_matrix(num_term,mf,effective_matrices):
+    mat = np.zeros(num_term)
+    m = effective_matrices[0].shape[0]
+    for t in range(1,num_term+1):
+        premat,aftmat = effective_matrices[t-1], effective_matrices[t]
+        mat[t,t] = num_term-premat[:mf,mf:].sum()-aftmat[mf:,:mf].sum()
+        mat[t,t-1] = premat[:mf,:mf].sum()
+        mat[t,t+1] = aftmat[mf:,mf:].sum()
+
 #====================================================================================
 
 
@@ -181,35 +214,4 @@ def states_check(seq,init_state,mf):
         states[j,-1] = init_state[j]
         states[j,0] = end_state[j]
     return states, seq
-
-
-# # test example
-# init_state = [1,1,1,0.3,0.3]
-# m = len(init_state)
-# mf = 3
-# seq_in_list = []
-# for i in range(2):
-#     seq_in_list.append([0,3,0.4])
-# for i in range(2):
-#     seq_in_list.append([0,2,0.3])
-# for i in range(2):
-#     seq_in_list.append([0,1,0.5])
-# for i in range(2):
-#     seq_in_list.append([1,3,0.4])
-# for i in range(2):
-#     seq_in_list.append([2,3,0.2])
-# for i in range(2):
-#     seq_in_list.append([3,4,0.4])
-# seq = np.array(seq_in_list)
-# # states, _ = states_check(seq,init_state,mf)
-# # v1, v2, v3, v4, v5 = states[0,:],states[1,:],states[2,:], states[3,:], states[4,:]
-# # plt.plot(v1,color='y')
-# # plt.plot(v2,color='g')
-# # plt.plot(v3,color='m')
-# # plt.plot(v4,color='r')
-# # plt.plot(v5,color='b')
-# # plt.show()
-# print(fusion(seq,5,3)[0])
-# # effmat = effective_matrix(seq,5,3)
-# # print(effmat.trans_mat())
 
