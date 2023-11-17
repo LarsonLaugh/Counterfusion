@@ -1,11 +1,12 @@
 import numpy as np
 import copy
 import random
+import matplotlib.pyplot as plt
 
 
 # TODO: add this class to create a system consisting of electron reserviors (contacts) and interactions in between
 class system:
-    def __init__(self,current,diagram):
+    def __init__(self,current,diagram,blocking_state = None):
         ''' This diagram should be a list containing effective_matrix instances between adjacent contacts
         along the forward-propagation direction.
         '''
@@ -13,22 +14,72 @@ class system:
         self.diagram = diagram
         self.m = diagram[0].trans_mat().shape[0]
         self.num_term = len(diagram)
+        self.blocking_state = blocking_state
     def mastermat(self,mf):
+        blocking_state = self.blocking_state
         effective_matrices = self.diagram
         num_term = self.num_term
         mat = np.zeros((num_term,num_term))
-        for t in range(num_term):
-            premat, aftmat = effective_matrices[t - 1].trans_mat(), effective_matrices[t].trans_mat()
-            mat[t, t] = self.m - premat[:mf, mf:].sum() - aftmat[mf:, :mf].sum()
-            mat[t, t - 1] = -premat[:mf, :mf].sum()
-            if t == num_term-1:
-                mat[t, 0] = -aftmat[mf:, mf:].sum()
-            else:
-                mat[t, t + 1] = -aftmat[mf:, mf:].sum()
+        if blocking_state is None:
+            for t in range(num_term):
+                premat, aftmat = effective_matrices[t - 1].trans_mat(), effective_matrices[t].trans_mat()
+                mat[t, t] = self.m - premat[:mf, mf:].sum() - aftmat[mf:, :mf].sum()
+                mat[t, t - 1] = -premat[:mf, :mf].sum()
+                if t == num_term-1:
+                    mat[t, 0] = -aftmat[mf:, mf:].sum()
+                else:
+                    mat[t, t + 1] = -aftmat[mf:, mf:].sum()
+        else:
+# TODO: need a better way to integrate this blocking_state is not None case, so far it is not successful.
+            indices_terminal = [info[0] for info in blocking_state]
+            indices_edge_state = [info[1] for info in blocking_state]
+            for t in range(num_term):
+                premat, aftmat = effective_matrices[t - 1].trans_mat(), effective_matrices[t].trans_mat()
+                if t not in indices_terminal:
+                    mat[t, t] = self.m - premat[:mf, mf:].sum() - aftmat[mf:, :mf].sum()
+                    mat[t, t - 1] = -premat[:mf, :mf].sum()
+                    if t == num_term - 1:
+                        mat[t, 0] = -aftmat[mf:, mf:].sum()
+                    else:
+                        mat[t, t + 1] = -aftmat[mf:, mf:].sum()
+                else:
+                    index_t = indices_terminal.index(t)
+                    mat[t, t] = self.m-len(indices_edge_state[index_t]) - premat[:mf, mf:].sum() - aftmat[mf:, :mf].sum()+sum([premat[id,mf:].sum() if id<mf else premat[:mf,id].sum() for id in indices_edge_state[index_t]])+sum([aftmat[mf:,id].sum() if id<mf else aftmat[id,:mf].sum() for id in indices_edge_state[index_t]])
+                    mat[t, t - 1] = -premat[:mf, :mf].sum()+sum([premat[id,:mf].sum() if id<mf else 0 for id in indices_edge_state[index_t]])+sum([premat[:mf,id].sum() if id<mf else 0 for id in indices_edge_state[index_t]])-sum([premat[id,id] for id in indices_edge_state[index_t]])
+                    if t == num_term - 1:
+                        mat[t, 0] = -aftmat[mf:, mf:].sum()+sum([aftmat[id,mf:].sum() if id>mf else 0 for id in indices_edge_state[index_t]])+sum([aftmat[mf:,id].sum() if id>mf else 0 for id in indices_edge_state[index_t]])-sum([aftmat[id,id] for id in indices_edge_state[index_t]])
+                    else:
+                        mat[t, t + 1] = -aftmat[mf:, mf:].sum()+sum([aftmat[id,mf:].sum() if id>mf else 0 for id in indices_edge_state[index_t]])+sum([aftmat[mf:,id].sum() if id>mf else 0 for id in indices_edge_state[index_t]])-sum([aftmat[id,id] for id in indices_edge_state[index_t]])
+
         return mat
     def solve(self,mf):
-        term_voltage = np.linalg.solve(self.mastermat(mf),self.term_current)
-        return term_voltage
+        blocking_state = self.blocking_state
+        term_voltages = np.linalg.solve(self.mastermat(mf),self.term_current)
+        return term_voltages
+    def voltage_tracker(self,mf):
+        term_voltages = self.solve(mf)
+        states = []
+        m = self.m
+        for i, eff_mat in enumerate(self.diagram):
+            init_state = []
+            init_state.extend([term_voltages[i]]*mf)
+            if i == self.num_term-1:
+                init_state.extend([term_voltages[0]]*(m-mf))
+            else:
+                init_state.extend([term_voltages[i+1]]*(m-mf))
+            states.append(eff_mat.status_check(init_state))
+        return states,term_voltages
+    def voltage_plot(self,probe_width,mf):
+        m = self.m
+        states,term_voltages  = self.voltage_tracker(mf)
+        pre_state = np.hstack((np.ones((m, probe_width)) * term_voltages[0], states[0]))
+        state_throughout = []
+        for state, term in zip(states[1:], term_voltages[1:]):
+            state_throughout = np.hstack((np.hstack((pre_state, np.ones((m, probe_width)) * term)), state))
+            pre_state = state_throughout
+        [plt.plot(edgestate,'r') for edgestate in state_throughout[:mf]]
+        [plt.plot(edgestate,'b') for edgestate in state_throughout[mf:]]
+
 class effective_matrix:
     def __init__(self,sequence,m,mf):
         self.seq = sequence
@@ -53,7 +104,42 @@ class effective_matrix:
             mat0 = res
         # Return the final merged matrix 'res' and the input sequence 'seq'.
         return res
+    def status_check(self,init_state):
+        mf = self.mf
+        seq = self.seq
+        # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
+        matrices = []
+        ths = []
+        m = len(init_state)
+        states = np.zeros([m, len(seq) + 1])
+        # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
+        for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
+            matrix = scatter_matrix(m, id1, id2, v)
+            matrices.append(matrix)
 
+        # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
+        mat0 = matrices[0]
+        for mat1 in matrices[1:]:
+            omega = merge(mat0, mat1, mf)
+            ths.append(theta(mat0, mat1, mf))
+            mat0 = omega  # omega connects the initial and final states by the end of this for-loop.
+
+        end_state = np.dot(omega, init_state)
+        temp_state = copy.deepcopy(init_state)
+        # calculate all the states between initial and final states
+        for i, th in enumerate(ths[::-1]):
+            newstate = np.dot(th, temp_state)
+            states[:, -i - 2] = newstate
+            temp_state[2] = newstate[2]
+
+        # connect intermediate states with initial and final states
+        for i in range(mf):
+            states[i, 0] = init_state[i]
+            states[i, -1] = end_state[i]
+        for j in range(mf, m):
+            states[j, -1] = init_state[j]
+            states[j, 0] = end_state[j]
+        return states
 #================================================================
 #core functions
 
