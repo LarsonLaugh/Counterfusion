@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # TODO: add this class to create a system consisting of electron reserviors (contacts) and interactions in between
 class system:
-    def __init__(self,current,diagram,mf,blocking_state = None):
+    def __init__(self,current,diagram,mf,ground_term,blocking_state = None):
         ''' This diagram should be a list containing effective_matrix instances between adjacent contacts
         along the forward-propagation direction.
         '''
@@ -15,6 +15,7 @@ class system:
         self.m = diagram[0].trans_mat().shape[0]
         self.mf = mf
         self.num_term = len(diagram)
+        self.ground_term = ground_term
         self.blocking_state = blocking_state
     def mastermat(self):
         blocking_state = self.blocking_state
@@ -23,19 +24,19 @@ class system:
         mf = self.mf
         mat = np.zeros((num_term,num_term))
         for t in range(num_term):
-            premat, aftmat = effective_matrices[t - 1].trans_mat(), effective_matrices[t].trans_mat()
+            premat, aftmat = effective_matrices[self.prev(t)].trans_mat(), effective_matrices[t].trans_mat()
             mat[t, t] = self.m - premat[:mf, mf:].sum() - aftmat[mf:, :mf].sum()
             mat[t, self.prev(t)] = -premat[:mf, :mf].sum()
             mat[t, self.after(t)] = -aftmat[mf:, mf:].sum()
         if blocking_state is not None:
-            id_terminals, id_edgestates = [info[0] for info in blocking_state], [info[1] for info in blocking_state]
-            for t in id_terminals:
+            id_terms, id_edges= [info[0] for info in blocking_state], [info[1] for info in blocking_state]
+            for t in id_terms:
                 # make corrections to the matrix elements connecting central terminal t and adjacent terminals t-1 and t+1.
-                idt = id_terminals.index(t)
-                premat, aftmat = effective_matrices[t - 1].trans_mat(), effective_matrices[t].trans_mat()
-                mat[t, t] = mat[t, t]-len(id_edgestates[idt])+sum([premat[id,mf:].sum() if id<mf else aftmat[id,:mf].sum() for id in id_edgestates[idt]])
-                mat[t, self.prev(t)] = mat[t, self.prev(t)]+sum([premat[id,:mf].sum() if id<mf else 0 for id in id_edgestates[idt]])
-                mat[t, self.after(t)] = mat[t, self.after(t)]+sum([aftmat[id,mf:].sum() if id>=mf else 0 for id in id_edgestates[idt]])
+                idt = id_terms.index(t)
+                premat, aftmat = effective_matrices[self.prev(t)].trans_mat(), effective_matrices[t].trans_mat()
+                mat[t, t] = mat[t, t]+sum([premat[id,mf:].sum() if id<mf else aftmat[id,:mf].sum() for id in id_edges[idt]])-len(id_edges[idt])
+                mat[t, self.prev(t)] = mat[t, self.prev(t)]+sum([premat[id,:mf].sum() if id<mf else 0 for id in id_edges[idt]])
+                mat[t, self.after(t)] = mat[t, self.after(t)]+sum([aftmat[id,mf:].sum() if id>=mf else 0 for id in id_edges[idt]])
             # make corrections to the matrix elements connecting non-adjacent terminals due to the blocked edge states.
             edges,table = self.which_terminal()
             for edge in edges:
@@ -46,6 +47,7 @@ class system:
                 entry_term = sorted(entry_term)
                 if edge < mf:
                     for i, term in enumerate(entry_term):
+                        premat = effective_matrices[self.prev(term)].trans_mat()
                         i_prev = self.prev(i,len(entry_term))
                         if entry_term[i_prev] is not self.prev(term):
                             merge_mat = effective_matrices[entry_term[i_prev]].trans_mat()
@@ -53,10 +55,12 @@ class system:
                             while self.after(current_term) is not term:
                                 merge_mat = merge(merge_mat,effective_matrices[self.after(current_term)].trans_mat(),mf)
                                 current_term = self.after(current_term)
-                            mat[term,term] = mat[term,term]-merge_mat[edge,mf:].sum()+1
-                            mat[term,entry_term[i_prev]] = mat[term,entry_term[i_prev]]-merge_mat[edge,:mf].sum()
+                            mat[term,term] = mat[term,term]+premat[edge, mf:].sum()-merge_mat[edge,mf:].sum()
+                            mat[term, self.prev(term)] = mat[term, self.prev(term)] + premat[edge, :mf].sum()
+                            mat[term,entry_term[i_prev]] = mat[term, entry_term[i_prev]]-merge_mat[edge,:mf].sum()
                 else:
                     for i, term in enumerate(entry_term):
+                        aftmat = effective_matrices[term].trans_mat()
                         i_after = self.after(i,len(entry_term))
                         if entry_term[i_after] is not self.after(term):
                             merge_mat = effective_matrices[term].trans_mat()
@@ -64,7 +68,8 @@ class system:
                             while self.after(current_term) is not entry_term[i_after]:
                                 merge_mat = merge(merge_mat,effective_matrices[self.after(current_term)].trans_mat(),mf)
                                 current_term = self.after(current_term)
-                            mat[term,term] = mat[term,term]-merge_mat[edge,:mf].sum()+1
+                            mat[term, term] = mat[term, term]+aftmat[edge,:mf].sum()-merge_mat[edge,:mf].sum()
+                            mat[term, self.after(term)] = mat[term, self.after(term)] + aftmat[edge, mf:].sum()
                             mat[term,entry_term[i_after]]=mat[term,entry_term[i_after]]-merge_mat[edge,mf:].sum()
         return mat
     def which_terminal(self):
@@ -96,8 +101,9 @@ class system:
             return int(id+1)
     def solve(self):
         mf = self.mf
+        ground_term = self.ground_term
         term_voltages = np.linalg.solve(self.mastermat(),self.term_current)
-        return term_voltages
+        return term_voltages-term_voltages[ground_term]
     def voltage_tracker(self):
         mf = self.mf
         term_voltages = self.solve()
