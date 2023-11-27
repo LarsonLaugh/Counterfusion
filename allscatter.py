@@ -29,14 +29,14 @@ class System:
             mat[t, self.prev(t)] = -premat[:nfm, :nfm].sum()
             mat[t, self.after(t)] = -aftmat[nfm:, nfm:].sum()
         if blockStates is not None:
-            id_terms, id_edges= [info[0] for info in blockStates], [info[1] for info in blockStates]
-            for t in id_terms:
+            idTerms, idEdges= [info[0] for info in blockStates], [info[1] for info in blockStates]
+            for t in idTerms:
                 # make corrections to the matrix elements connecting central terminal t and adjacent terminals t-1 and t+1.
-                idt = id_terms.index(t)
+                idt = idTerms.index(t)
                 premat, aftmat = edges[self.prev(t)].trans_mat(), edges[t].trans_mat()
-                mat[t, t] = mat[t, t]+sum([premat[id, nfm:].sum() if id<nfm else aftmat[id, :nfm].sum() for id in id_edges[idt]])-len(id_edges[idt])
-                mat[t, self.prev(t)] = mat[t, self.prev(t)]+sum([premat[id,:nfm].sum() if id<nfm else 0 for id in id_edges[idt]])
-                mat[t, self.after(t)] = mat[t, self.after(t)]+sum([aftmat[id,nfm:].sum() if id>=nfm else 0 for id in id_edges[idt]])
+                mat[t, t] = mat[t, t]+sum([premat[id, nfm:].sum() if id<nfm else aftmat[id, :nfm].sum() for id in idEdges[idt]])-len(idEdges[idt])
+                mat[t, self.prev(t)] = mat[t, self.prev(t)]+sum([premat[id,:nfm].sum() if id<nfm else 0 for id in idEdges[idt]])
+                mat[t, self.after(t)] = mat[t, self.after(t)]+sum([aftmat[id,nfm:].sum() if id>=nfm else 0 for id in idEdges[idt]])
             # make corrections to the matrix elements connecting non-adjacent terminals due to the blocked edge states.
             edges,table = self.which_terminal()
             for edge in edges:
@@ -76,12 +76,12 @@ class System:
         blockStates = self.blockStates
         if blockStates is None:
             return None
-        id_term, id_edges = [info[0] for info in blockStates], [info[1] for info in blockStates]
+        idTerm, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
         edge_term_table=[]
         scattered_edges = []
-        for i, edges in enumerate(id_edges):
+        for i, edges in enumerate(idEdges):
             for edge in edges:
-                edge_term_table.append([edge,id_term[i]])
+                edge_term_table.append([edge,idTerm[i]])
                 if edge not in scattered_edges:
                     scattered_edges.append(edge)
         return scattered_edges, edge_term_table
