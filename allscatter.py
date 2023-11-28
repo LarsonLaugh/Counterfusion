@@ -4,7 +4,6 @@ import random
 import matplotlib.pyplot as plt
 import warnings
 
-# TODO: add this class to create a System consisting of electron reserviors (contacts) and interactions in between
 class System:
     def __init__(self,nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates = None):
         ''' This graph should be a list containing Edge instances between adjacent contacts
@@ -139,7 +138,27 @@ class System:
             return True
         except:
             return False
-
+    def plot(self,figsize=(12,10)):
+        tnm = self.totalNumMover
+        nfm = self.numForwardMover
+        edges = self.graph
+        _, axs = plt.subplots(2, len(edges), figsize=figsize,sharex=True,sharey=True)
+        termVoltages = self.solve()
+        plt.subplots_adjust(hspace=0.1)
+        # plt.subplots_adjust(vspace=0)
+        try:
+            for i, edge in enumerate(edges):
+                initStates = [termVoltages[i] if j<nfm else termVoltages[self.after(i)] for j in range(tnm)]
+                edge.plot(initStates,ax1=axs[0,i],ax2=axs[1,i])
+                if max(termVoltages)+0.1>1:
+                    axs[1, 0].set_ylim(-0.1, max(termVoltages) + 0.1)
+                else:
+                    axs[1, 0].set_ylim(-0.1, 1.05)
+                axs[1,i].axhline(y=termVoltages[i],xmin=0,xmax=0.4,linestyle='-',color='y')
+                axs[1,i].axhline(y=termVoltages[self.after(i)],xmin=0.6,xmax=1,linestyle='-',color='y')
+            return axs
+        except:
+            return False
 class Edge:
     def __init__(self,sequence,totalNumMover,numForwardMover):
         self.seq = sequence
@@ -203,6 +222,28 @@ class Edge:
             states[j, -1] = initState[j]
             states[j, 0] = finalState[j]
         return states
+    def plot(self,initStates,ax1=None,ax2=None):
+        tnm = self.totalNumMover
+        nfm = self.numForwardMover
+        if ax1 is None or ax2 is None:
+            _, axs = plt.subplots(2,1,figsize=(8,6),sharex=True)
+            ax1, ax2 = axs
+            plt.subplots_adjust(hspace=0.1)
+        seq = self.seq
+        try:
+            scatterSite = np.arange(0.5,len(seq)+0.5,1)
+            scatterValue = [scatter[2] for scatter in seq]
+            color = [[scatter[0]/tnm,scatter[1]/tnm,scatter[0]/tnm/2+scatter[1]/tnm/2] for scatter in seq]
+            ax1.scatter(scatterSite,scatterValue,c=color,marker='o')
+            states = self.status_check(initStates)
+            [ax2.plot(states[row,:],color=[(nfm-row)/tnm,0.1,0]) if row<nfm else ax2.plot(states[row,:],color=[0,0.1,(row+1)/tnm]) for row in range(tnm)]
+            ax1.set_ylabel('Value')
+            ax1.set_ylim(-0.05,1.05)
+            ax2.set_xlabel('Interaction Site')
+            ax2.set_ylabel('Flow Status')
+            return (ax1, ax2)
+        except:
+            return False
 #================================================================
 #core functions
 
@@ -297,7 +338,6 @@ def master_matrix(numTerminal,nfm,edges):
 
 #------------------------------------------------------------------------------------
 # helper functions
-# TODO: build this function to generate a sequence with given types and values
 
 def generate_bynumber(messages):
     '''
