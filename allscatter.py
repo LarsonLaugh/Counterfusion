@@ -223,6 +223,7 @@ class Edge:
             states[j, 0] = finalState[j]
         return states
     def plot(self,initStates,ax1=None,ax2=None):
+        import matplotlib.patches as patches
         tnm = self.totalNumMover
         nfm = self.numForwardMover
         if ax1 is None or ax2 is None:
@@ -233,8 +234,21 @@ class Edge:
         try:
             scatterSite = np.arange(0.5,len(seq)+0.5,1)
             scatterValue = [scatter[2] for scatter in seq]
-            color = [[scatter[0]/tnm,scatter[1]/tnm,scatter[0]/tnm/2+scatter[1]/tnm/2] for scatter in seq]
-            ax1.scatter(scatterSite,scatterValue,c=color,marker='o')
+            colorsUpper = [[(nfm-scatter[0])/tnm,0.1,0] if scatter[0]<nfm else [0,0.1,(scatter[0]+1)/tnm] for scatter in seq]
+            colorsLower = [[(nfm-scatter[1])/tnm,0.1,0] if scatter[1]<nfm else [0,0.1,(scatter[1]+1)/tnm] for scatter in seq]
+            for xi, yi, colorUpper,colorLower in zip(scatterSite,scatterValue,colorsUpper,colorsLower):
+                # Define a circle radius and center
+                radius = 0.05
+                circle_center = (xi, yi)
+                # Create upper half (red)
+                theta1, theta2 = 0, 180  # Degrees
+                upper_half = patches.Wedge(circle_center, radius, theta1, theta2, color=colorUpper)
+                # Create lower half (blue)
+                theta1, theta2 = 180, 360  # Degrees
+                lower_half = patches.Wedge(circle_center, radius, theta1, theta2, color=colorLower)
+                # Add patches to the axes
+                ax1.add_patch(upper_half)
+                ax1.add_patch(lower_half)
             states = self.status_check(initStates)
             [ax2.plot(states[row,:],color=[(nfm-row)/tnm,0.1,0]) if row<nfm else ax2.plot(states[row,:],color=[0,0.1,(row+1)/tnm]) for row in range(tnm)]
             ax1.set_ylabel('Value')
