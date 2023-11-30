@@ -18,86 +18,115 @@ class System:
         self.blockStates = blockStates
     def mastermat(self):
         blockStates = self.blockStates
-        edges = self.graph
+        edges = [edge.trans_mat() for edge in self.graph]
         numTerminal = self.numTerminal
         nfm = self.numForwardMover
+        tnm = self.totalNumMover
         mat = np.zeros((numTerminal,numTerminal))
         for t in range(numTerminal):
-            premat, aftmat = edges[self.prev(t)].trans_mat(), edges[t].trans_mat()
+            premat, aftmat = edges[self.prev(t)], edges[t]
             mat[t, t] = self.totalNumMover - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
             mat[t, self.prev(t)] = -premat[:nfm, :nfm].sum()
             mat[t, self.after(t)] = -aftmat[nfm:, nfm:].sum()
         if blockStates is not None:
+            idscatteredEdge, edgeBlockedInThese = self.which_blocked()
+            print('edgeBlockedInThese',edgeBlockedInThese)
             idTerms, idEdges= [info[0] for info in blockStates], [info[1] for info in blockStates]
+            terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
+            fullset = np.arange(0, tnm, 1, dtype=int).tolist()
+            table = [[term,list(set(fullset)-set(idEdges[idTerms.index(term)]))] if term in idTerms else [term,fullset] for term in terminals]
             for t in idTerms:
-                # make corrections to the matrix elements connecting central terminal t and adjacent terminals t-1 and t+1.
+                # make corrections to the matrix elements connecting central terminal t and adjacent terminals prev(t) and after(t).
                 idt = idTerms.index(t)
-                premat, aftmat = edges[self.prev(t)].trans_mat(), edges[t].trans_mat()
-                mat[t, t] = mat[t, t]+sum([premat[id, nfm:].sum() if id<nfm else aftmat[id, :nfm].sum() for id in idEdges[idt]])-len(idEdges[idt])
-                mat[t, self.prev(t)] = mat[t, self.prev(t)]+sum([premat[id,:nfm].sum() if id<nfm else 0 for id in idEdges[idt]])
-                mat[t, self.after(t)] = mat[t, self.after(t)]+sum([aftmat[id,nfm:].sum() if id>=nfm else 0 for id in idEdges[idt]])
+                premat, aftmat = edges[self.prev(t)], edges[t]
+                mat[t, t] = mat[t, t]+sum([premat[index, nfm:].sum() if index<nfm else aftmat[index, :nfm].sum() for index in idEdges[idt]])-len(idEdges[idt])
+                mat[t, self.prev(t)] = mat[t, self.prev(t)]+sum([premat[index,:nfm].sum() if index<nfm else 0 for index in idEdges[idt]])
+                mat[t, self.after(t)] = mat[t, self.after(t)]+sum([aftmat[index,nfm:].sum() if index>=nfm else 0 for index in idEdges[idt]])
             # make corrections to the matrix elements connecting non-adjacent terminals due to the blocked edge states.
-            edges,table = self.which_terminal()
-            for edge in edges:
-                entry_term = [i for i in range(self.numTerminal)]
-                for relation in table:
-                    if int(relation[0]) == edge:
-                        entry_term.remove(int(relation[1]))
-                entry_term = sorted(entry_term)
-                if edge < nfm:
-                    for i, term in enumerate(entry_term):
-                        premat = edges[self.prev(term)].trans_mat()
-                        i_prev = self.prev(i,len(entry_term))
-                        if entry_term[i_prev] is not self.prev(term):
-                            merge_mat = edges[entry_term[i_prev]].trans_mat()
-                            current_term = entry_term[i_prev]
-                            while self.after(current_term) is not term:
-                                merge_mat = merge(merge_mat,edges[self.after(current_term)].trans_mat(), nfm)
-                                current_term = self.after(current_term)
-                            mat[term,term] = mat[term,term]+premat[edge, nfm:].sum()-merge_mat[edge, nfm:].sum()
-                            mat[term, self.prev(term)] = mat[term, self.prev(term)] + premat[edge, :nfm].sum()
-                            mat[term,entry_term[i_prev]] = mat[term, entry_term[i_prev]]-merge_mat[edge,:nfm].sum()
+            for j in idscatteredEdge:
+                print("blocked j",j)
+                jEnterThese = copy.deepcopy(terminals)
+                for relation in edgeBlockedInThese:
+                    # print("jEnterTheseinloop",jEnterThese)
+                    if int(relation[0]) is j:
+                        jEnterThese.remove(int(relation[1]))
+                print("jEnterThese", jEnterThese)
+                if j<nfm:
+                    print("j<nfm",j)
+                    for i, t in enumerate(jEnterThese):
+                        i_prev = self.prev(i,len(jEnterThese))
+                        if jEnterThese[i_prev] is not self.prev(t):
+                            print("t=",t)
+                            mat[t,t] += edges[self.prev(t)][j,nfm:].sum()
+                            mat[t,self.prev(t)] += edges[self.prev(t)][j,:nfm].sum()
+                            changes = self.muj_finalstate(j,t,table)
+                            for term in terminals:
+                                mat[t,term] -= changes[term]
                 else:
-                    for i, term in enumerate(entry_term):
-                        aftmat = edges[term].trans_mat()
-                        i_after = self.after(i,len(entry_term))
-                        if entry_term[i_after] is not self.after(term):
-                            merge_mat = edges[term].trans_mat()
-                            current_term = term
-                            while self.after(current_term) is not entry_term[i_after]:
-                                merge_mat = merge(merge_mat,edges[self.after(current_term)].trans_mat(),nfm)
-                                current_term = self.after(current_term)
-                            mat[term, term] = mat[term, term]+aftmat[edge,:nfm].sum()-merge_mat[edge,:nfm].sum()
-                            mat[term, self.after(term)] = mat[term, self.after(term)] + aftmat[edge, nfm:].sum()
-                            mat[term,entry_term[i_after]]=mat[term,entry_term[i_after]]-merge_mat[edge,nfm:].sum()
+                    print("j>=nfm",j)
+                    for i, t in enumerate(jEnterThese):
+                        i_after = self.after(i,len(jEnterThese))
+                        if jEnterThese[i_after] is not self.after(t):
+                            mat[t,t] += edges[t][j,:nfm].sum()
+                            mat[t,self.after(t)] += edges[t][j,nfm:].sum()
+                            changes = self.muj_finalstate(j,self.after(t),table)
+                            for term in terminals:
+                                mat[t,term] -= changes[term]
         return mat
-    def which_terminal(self):
+    def which_blocked(self):
         blockStates = self.blockStates
         if blockStates is None:
             return None
         idTerm, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
-        edge_term_table=[]
-        scattered_edges = []
+        edgeBlockedInThese=[]
+        blockedEdges = []
         for i, edges in enumerate(idEdges):
             for edge in edges:
-                edge_term_table.append([edge,idTerm[i]])
-                if edge not in scattered_edges:
-                    scattered_edges.append(edge)
-        return scattered_edges, edge_term_table
-    def prev(self,id,period=None):
+                edgeBlockedInThese.append([edge,idTerm[i]])
+                if edge not in blockedEdges:
+                    blockedEdges.append(edge)
+        return blockedEdges, edgeBlockedInThese
+    def muj_finalstate(self, j, t, table):
+        matrices = [edge.trans_mat() for edge in self.graph]
+        nfm = self.numForwardMover
+        tnm = self.totalNumMover
+        ntm = self.numTerminal
+        changes = [0] * ntm
+
+        fullset = np.arange(0, tnm, 1, dtype=int).tolist()
+        terminals = np.arange(0, ntm, 1, dtype=int).tolist()
+
+        for k in [s for s in table[self.prev(t)][1] if s < nfm]:
+            changes[self.prev(t)] += matrices[self.prev(t)][j, k]  # First term
+
+        for k in [s for s in table[t][1] if s >= nfm]:
+            changes[t] += matrices[self.prev(t)][j, k]  # Second term
+
+        for k in [s for s in list(set(fullset) - set(table[self.prev(t)][1])) if s < nfm]:
+            chgSubpre = self.muj_finalstate(k, self.prev(t), table)  # Third term
+            for term in terminals:
+                changes[term] += matrices[self.prev(t)][j, k] * chgSubpre[term]
+
+        for k in [s for s in list(set(fullset) - set(table[t][1])) if s >= nfm]:
+            chgSubaft = self.muj_finalstate(k, self.after(t), table) # Fourth term
+            for term in terminals:
+                changes[term] += matrices[self.prev(t)][j, k] * chgSubaft[term]
+
+        return changes
+    def prev(self,index,period=None):
         if period is None:
             period = self.numTerminal
-        if int(id)==0:
+        if int(index)==0:
             return int(period-1)
         else:
-            return int(id-1)
-    def after(self,id,period=None):
+            return int(index-1)
+    def after(self,index,period=None):
         if period is None:
             period = self.numTerminal
-        if int(id)==(period-1):
+        if int(index)==(period-1):
             return 0
         else:
-            return int(id+1)
+            return int(index+1)
     def solve(self):
         nfm = self.numForwardMover
         termVoltages = np.array([0]*self.numTerminal)
@@ -145,17 +174,16 @@ class System:
         _, axs = plt.subplots(2, len(edges), figsize=figsize,sharex=True,sharey=True)
         termVoltages = self.solve()
         plt.subplots_adjust(hspace=0.1)
-        # plt.subplots_adjust(vspace=0)
         try:
             for i, edge in enumerate(edges):
                 initStates = [termVoltages[i] if j<nfm else termVoltages[self.after(i)] for j in range(tnm)]
-                edge.plot(initStates,ax1=axs[0,i],ax2=axs[1,i])
+                edge.plot(initStates, ax1=axs[0,i], ax2=axs[1,i])
                 if max(termVoltages)+0.1>1:
                     axs[1, 0].set_ylim(-0.1, max(termVoltages) + 0.1)
                 else:
                     axs[1, 0].set_ylim(-0.1, 1.05)
-                axs[1,i].axhline(y=termVoltages[i],xmin=0,xmax=0.4,linestyle='-',color='y')
-                axs[1,i].axhline(y=termVoltages[self.after(i)],xmin=0.6,xmax=1,linestyle='-',color='y')
+                axs[1, i].axhline(y=termVoltages[i],xmin=0,xmax=0.4,linestyle='-',color='y')
+                axs[1, i].axhline(y=termVoltages[self.after(i)], xmin=0.6, xmax=1, linestyle='-', color='y')
             return axs
         except:
             return False
@@ -213,7 +241,6 @@ class Edge:
                 tempState[nfm:] = newState[nfm:]
             else:
                 tempState = newState
-
         # connect intermediate states with initial and final states
         for i in range(nfm):
             states[i, 0] = initState[i]
