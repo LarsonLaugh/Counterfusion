@@ -171,20 +171,36 @@ class System:
     def plot(self,figsize=(12,10)):
         tnm = self.totalNumMover
         nfm = self.numForwardMover
+        numTerminal = self.numTerminal
+        blockStates = self.blockStates
         edges = self.graph
         _, axs = plt.subplots(2, len(edges), figsize=figsize,sharex=True,sharey=True)
         termVoltages = self.solve()
         plt.subplots_adjust(hspace=0.1)
+        if blockStates is not None:
+            idTerms, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
+            terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
+            fullset = np.arange(0, tnm, 1, dtype=int).tolist()
+            table = [
+                [term, list(set(fullset) - set(idEdges[idTerms.index(term)]))] if term in idTerms else [term, fullset]
+                for term in terminals]
         try:
-            for i, edge in enumerate(edges):
-                initStates = [termVoltages[i] if j<nfm else termVoltages[self.after(i)] for j in range(tnm)]
-                edge.plot(initStates, ax1=axs[0,i], ax2=axs[1,i])
+            for t, edge in enumerate(edges):
+                initStates = [termVoltages[t] if j<nfm else termVoltages[self.after(t)] for j in range(tnm)]
+                if blockStates is not None:
+                    if t in idTerms:
+                        for j in idEdges[idTerms.index(t)]:
+                            if j<nfm:
+                                initStates[j] = np.dot(self.muj_finalstate(j, t, table),termVoltages)
+                            else:
+                                initStates[j] = np.dot(self.muj_finalstate(j, self.after(t), table),termVoltages)
+                edge.plot(initStates, ax1=axs[0,t], ax2=axs[1,t])
                 if max(termVoltages)+0.1>1:
                     axs[1, 0].set_ylim(-0.1, max(termVoltages) + 0.1)
                 else:
                     axs[1, 0].set_ylim(-0.1, 1.05)
-                axs[1, i].axhline(y=termVoltages[i],xmin=0,xmax=0.4,linestyle='-',color='y')
-                axs[1, i].axhline(y=termVoltages[self.after(i)], xmin=0.6, xmax=1, linestyle='-', color='y')
+                axs[1, t].axhline(y=termVoltages[t],xmin=0,xmax=0.4,linestyle='-',color='y')
+                axs[1, t].axhline(y=termVoltages[self.after(t)], xmin=0.6, xmax=1, linestyle='-', color='y')
             return axs
         except:
             return False
