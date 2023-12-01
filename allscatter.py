@@ -28,18 +28,12 @@ class System:
             mat[t, t] = self.totalNumMover - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
             mat[t, self.prev(t)] = -premat[:nfm, :nfm].sum()
             mat[t, self.after(t)] = -aftmat[nfm:, nfm:].sum()
-        # print("before correction\n",mat)
         if blockStates is not None:
             idscatteredEdge, edgeBlockedInThese = self.which_blocked()
-            # print('idscatteredEdge', idscatteredEdge)
-            # print('edgeBlockedInThese',edgeBlockedInThese)
             idTerms, idEdges= [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
             fullset = np.arange(0, tnm, 1, dtype=int).tolist()
             table = [[term,list(set(fullset)-set(idEdges[idTerms.index(term)]))] if term in idTerms else [term,fullset] for term in terminals]
-            # print("idTerms",idTerms)
-            # print("idEdges", idTerms)
-            # print("table",table)
             for t in idTerms:
                 # make corrections to the matrix elements connecting central terminal t and adjacent terminals prev(t) and after(t).
                 idt = idTerms.index(t)
@@ -55,22 +49,16 @@ class System:
                 for relation in edgeBlockedInThese:
                     if int(relation[0]) is j:
                         jEnterThese.remove(int(relation[1]))
-                # print("jEnterThese", jEnterThese)
                 if j<nfm:
-                    # print("j<nfm",j)
                     for i, t in enumerate(jEnterThese):
                         i_prev = self.prev(i,len(jEnterThese))
                         if jEnterThese[i_prev] is not self.prev(t):
-                            # print("t=",t)
                             mat[t,t] += edges[self.prev(t)][j,nfm:].sum()
                             mat[t,self.prev(t)] += edges[self.prev(t)][j,:nfm].sum()
-                            # print("after 1.5st correction\n",mat)
                             changes = self.muj_finalstate(j,t,table)
-                            # print("changes",changes)
                             for term in terminals:
                                 mat[t,term] -= changes[term]
                 else:
-                    # print("j>=nfm",j)
                     for i, t in enumerate(jEnterThese):
                         i_after = self.after(i,len(jEnterThese))
                         if jEnterThese[i_after] is not self.after(t):
