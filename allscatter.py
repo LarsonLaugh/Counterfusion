@@ -39,8 +39,19 @@ class System:
                 idt = idTerms.index(t)
                 premat, aftmat = edges[self.prev(t)], edges[t]
                 mat[t, t]+=sum([premat[index, nfm:].sum() if index<nfm else aftmat[index, :nfm].sum() for index in idEdges[idt]])-len(idEdges[idt])
+                mat[t, t]+=sum([aftmat[nfm:,index].sum() if index<nfm else premat[:nfm,index].sum() for index in idEdges[idt]])
                 mat[t, self.prev(t)]+=sum([premat[index,:nfm].sum() if index<nfm else 0 for index in idEdges[idt]])
                 mat[t, self.after(t)]+=sum([aftmat[index,nfm:].sum() if index>=nfm else 0 for index in idEdges[idt]])
+                for index in idEdges[idt]:
+                    if index<nfm:
+                        changes = self.muj_finalstate(index, t, table)
+                        for term in terminals:
+                            mat[t, term] -= changes[term]*aftmat[nfm:,index].sum()
+                    else:
+                        changes = self.muj_finalstate(index, t+1, table)
+                        for term in terminals:
+                            mat[t, term] -= changes[term]*premat[:nfm, index].sum()
+
             # make corrections to the matrix elements connecting non-adjacent terminals due to the blocked edge states.
             # print("after 1st correction\n",mat)
             for j in idscatteredEdge:
