@@ -23,61 +23,26 @@ class System:
         nfm = self.numForwardMover
         tnm = self.totalNumMover
         mat = np.zeros((numTerminal,numTerminal))
-        for t in range(numTerminal):
-            premat, aftmat = edges[self.prev(t)], edges[t]
-            mat[t, t] = self.totalNumMover - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
-            mat[t, self.prev(t)] = -premat[:nfm, :nfm].sum()
-            mat[t, self.after(t)] = -aftmat[nfm:, nfm:].sum()
-        if blockStates is not None:
-            idscatteredEdge, edgeBlockedInThese = self.which_blocked()
+        if blockStates is None:
+            for t in range(numTerminal):
+                premat, aftmat = edges[self.prev(t)], edges[t]
+                mat[t, t] = self.totalNumMover - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
+                mat[t, self.prev(t)] = -premat[:nfm, :nfm].sum()
+                mat[t, self.after(t)] = -aftmat[nfm:, nfm:].sum()
+        else:
             idTerms, idEdges= [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
             fullset = np.arange(0, tnm, 1, dtype=int).tolist()
             table = [[term,list(set(fullset)-set(idEdges[idTerms.index(term)]))] if term in idTerms else [term,fullset] for term in terminals]
-            for t in idTerms:
-                # make corrections to the matrix elements connecting central terminal t and adjacent terminals prev(t) and after(t).
-                idt = idTerms.index(t)
-                premat, aftmat = edges[self.prev(t)], edges[t]
-                mat[t, t]+=sum([premat[index, nfm:].sum() if index<nfm else aftmat[index, :nfm].sum() for index in idEdges[idt]])-len(idEdges[idt])
-                mat[t, t]+=sum([aftmat[nfm:,index].sum() if index<nfm else premat[:nfm,index].sum() for index in idEdges[idt]])
-                mat[t, self.prev(t)]+=sum([premat[index,:nfm].sum() if index<nfm else 0 for index in idEdges[idt]])
-                mat[t, self.after(t)]+=sum([aftmat[index,nfm:].sum() if index>=nfm else 0 for index in idEdges[idt]])
-                for index in idEdges[idt]:
-                    if index<nfm:
-                        changes = self.muj_finalstate(index, t, table)
-                        for term in terminals:
-                            mat[t, term] -= changes[term]*aftmat[nfm:,index].sum()
+            for t in range(numTerminal):
+                for k in table[t][1]:
+                    if k<nfm:
+                        changes = self.muj_finalstate(k, t, table)
                     else:
-                        changes = self.muj_finalstate(index, t+1, table)
-                        for term in terminals:
-                            mat[t, term] -= changes[term]*premat[:nfm, index].sum()
-
-            # make corrections to the matrix elements connecting non-adjacent terminals due to the blocked edge states.
-            # print("after 1st correction\n",mat)
-            for j in idscatteredEdge:
-                # print("blocked j",j)
-                jEnterThese = copy.deepcopy(terminals)
-                for relation in edgeBlockedInThese:
-                    if int(relation[0]) is j:
-                        jEnterThese.remove(int(relation[1]))
-                if j<nfm:
-                    for i, t in enumerate(jEnterThese):
-                        i_prev = self.prev(i,len(jEnterThese))
-                        if jEnterThese[i_prev] is not self.prev(t):
-                            mat[t,t] += edges[self.prev(t)][j,nfm:].sum()
-                            mat[t,self.prev(t)] += edges[self.prev(t)][j,:nfm].sum()
-                            changes = self.muj_finalstate(j,t,table)
-                            for term in terminals:
-                                mat[t,term] -= changes[term]
-                else:
-                    for i, t in enumerate(jEnterThese):
-                        i_after = self.after(i,len(jEnterThese))
-                        if jEnterThese[i_after] is not self.after(t):
-                            mat[t,t] += edges[t][j,:nfm].sum()
-                            mat[t,self.after(t)] += edges[t][j,nfm:].sum()
-                            changes = self.muj_finalstate(j,self.after(t),table)
-                            for term in terminals:
-                                mat[t,term] -= changes[term]
+                        changes = self.muj_finalstate(k,self.after(t),table)
+                    for term in terminals:
+                        mat[t,term] -= changes[term]
+                mat[t,t]+=len(table[t][1])
         return mat
     def which_blocked(self):
         blockStates = self.blockStates
