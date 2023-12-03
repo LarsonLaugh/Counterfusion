@@ -141,23 +141,22 @@ class System:
         _, axs = plt.subplots(2, len(edges), figsize=figsize,sharex=True,sharey=True)
         termVoltages = self.solve()
         plt.subplots_adjust(hspace=0.1)
+        initStatesList = []
+        for t, edge in enumerate(edges):
+            initStatesList.append([termVoltages[t] if j<nfm else termVoltages[self.after(t)] for j in range(tnm)])
         if blockStates is not None:
             idTerms, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
             fullset = np.arange(0, tnm, 1, dtype=int).tolist()
-            table = [
-                [term, list(set(fullset) - set(idEdges[idTerms.index(term)]))] if term in idTerms else [term, fullset]
-                for term in terminals]
+            table = [[term, list(set(fullset) - set(idEdges[idTerms.index(term)]))] if term in idTerms else [term, fullset] for term in terminals]
+            for t in idTerms:
+                for j in idEdges[idTerms.index(t)]:
+                    if j < nfm:
+                        initStatesList[t][j] = np.dot(self.muj_finalstate(j, t, table), termVoltages)
+                    else:
+                        initStatesList[self.prev(t)][j] = np.dot(self.muj_finalstate(j, self.after(t), table), termVoltages)
         try:
-            for t, edge in enumerate(edges):
-                initStates = [termVoltages[t] if j<nfm else termVoltages[self.after(t)] for j in range(tnm)]
-                if blockStates is not None:
-                    if t in idTerms:
-                        for j in idEdges[idTerms.index(t)]:
-                            if j<nfm:
-                                initStates[j] = np.dot(self.muj_finalstate(j, t, table),termVoltages)
-                            else:
-                                initStates[j] = np.dot(self.muj_finalstate(j, self.after(t), table),termVoltages)
+            for t, (initStates,edge) in enumerate(zip(initStatesList,edges)):
                 edge.plot(initStates, ax1=axs[0,t], ax2=axs[1,t])
                 if max(termVoltages)+0.1>1:
                     axs[1, 0].set_ylim(-0.1, max(termVoltages) + 0.1)
