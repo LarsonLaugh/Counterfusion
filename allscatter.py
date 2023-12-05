@@ -44,19 +44,6 @@ class System:
                         mat[t,term] -= changes[term]
                 mat[t,t]+=len(table[t][1])
         return mat
-    def which_blocked(self):
-        blockStates = self.blockStates
-        if blockStates is None:
-            return None
-        idTerm, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
-        edgeBlockedInThese=[]
-        blockedEdges = []
-        for i, edges in enumerate(idEdges):
-            for edge in edges:
-                edgeBlockedInThese.append([edge,idTerm[i]])
-                if edge not in blockedEdges:
-                    blockedEdges.append(edge)
-        return blockedEdges, edgeBlockedInThese
     def muj_finalstate(self, j, t, table):
         matrices = [edge.trans_mat() for edge in self.graph]
         nfm = self.numForwardMover
@@ -344,22 +331,11 @@ def scatter_matrix(m,id1,id2,value):
     matrix[id2,id1] = value/2
     return matrix
 
-
-def master_matrix(numTerminal,nfm,edges):
-    mat = np.zeros(numTerminal)
-    m = edges[0].shape[0]
-    for t in range(1,numTerminal+1):
-        premat,aftmat = edges[t-1], edges[t]
-        mat[t,t] = numTerminal-premat[:nfm,nfm:].sum()-aftmat[nfm:,:nfm].sum()
-        mat[t,t-1] = premat[:nfm,:nfm].sum()
-        mat[t,t+1] = aftmat[nfm:,nfm:].sum()
-
 #====================================================================================
 
 
 #------------------------------------------------------------------------------------
 # helper functions
-
 def generate_bynumber(messages):
     '''
     A "message" should be formatted into a nested list structure, e.g.,
@@ -372,57 +348,3 @@ def generate_bynumber(messages):
         seq_in_list.extend([message[:3]]*message[3])
         random.shuffle(seq_in_list)
     return np.array(seq_in_list)
-
-def fusion(seq,m,nfm):
-    # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
-    matrices = []
-    # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
-    for id1,id2,v in zip(seq[:, 0],seq[:, 1],seq[:,2]):
-        matrix = scatter_matrix(m,id1,id2,v)
-        matrices.append(matrix)
-    # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
-    mat0 = matrices[0]
-
-    # Merge the matrices in 'matrices' list sequentially and update 'mat0' with the result.
-    for mat1 in matrices[1:]:
-        res = merge(mat0, mat1, nfm)
-        mat0 = res
-    # Return the final merged matrix 'res' and the input sequence 'seq'.
-    return res, seq
-
-def states_check(seq,initState,nfm):
-    # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
-    matrices = []
-    ths = []
-    m = len(initState)
-    states = np.zeros([m, len(seq)+1])
-    # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
-    for id1,id2,v in zip(seq[:, 0],seq[:, 1],seq[:,2]):
-        matrix = scatter_matrix(m,id1,id2,v)
-        matrices.append(matrix)
-
-    # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
-    mat0 = matrices[0]
-    omega = mat0
-    for mat1 in matrices[1:]:
-        omega = merge(mat0, mat1, nfm)
-        ths.append(theta(mat0, mat1, nfm))
-        mat0 = omega # omega connects the initial and final states by the end of this for-loop.
-
-    finalState = np.dot(omega, initState)
-    tempState = copy.deepcopy(initState)
-    # calculate all the states between initial and final states
-    for i, th in enumerate(ths[::-1]):
-        newState= np.dot(th,tempState)
-        states[:,-i-2] = newState
-        tempState[2] = newState[2]
-
-    # connect intermediate states with initial and final states
-    for i in range(nfm):
-        states[i, 0] = initState[i]
-        states[i,-1] = finalState[i]
-    for j in range(nfm,m):
-        states[j,-1] = initState[j]
-        states[j,0] = finalState[j]
-    return states, seq
-
