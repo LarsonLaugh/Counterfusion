@@ -1,14 +1,10 @@
 import numpy as np
-import copy
-import random
 import matplotlib.pyplot as plt
-import warnings
-
+import warnings, copy, random
+#====================================================================================================
+# Define Class System and Edge
 class System:
     def __init__(self,nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates = None):
-        ''' This graph should be a list containing Edge instances between adjacent contacts
-        along the forward-propagation direction.
-        '''
         self.nodesCurrent = nodesCurrent
         self.graph = graph
         self.totalNumMover = graph[0].trans_mat().shape[0]
@@ -44,44 +40,7 @@ class System:
                         mat[t,term] -= changes[term]
                 mat[t,t]+=len(table[t][1])
         return mat
-    def muj_finalstate(self, j, t, table):
-        matrices = [edge.trans_mat() for edge in self.graph]
-        nfm = self.numForwardMover
-        tnm = self.totalNumMover
-        ntm = self.numTerminal
-        changes = [0] * ntm
-        fullset = np.arange(0, tnm, 1, dtype=int).tolist()
-        terminals = np.arange(0, ntm, 1, dtype=int).tolist()
-        for k in [s for s in table[self.prev(t)][1] if s < nfm]:
-            changes[self.prev(t)] += matrices[self.prev(t)][j, k]  # First term
-        for k in [s for s in table[t][1] if s >= nfm]:
-            changes[t] += matrices[self.prev(t)][j, k]  # Second term
-        for k in [s for s in list(set(fullset) - set(table[self.prev(t)][1])) if s < nfm]:
-            chgSubpre = self.muj_finalstate(k, self.prev(t), table)  # Third term
-            for term in terminals:
-                changes[term] += matrices[self.prev(t)][j, k] * chgSubpre[term]
-        for k in [s for s in list(set(fullset) - set(table[t][1])) if s >= nfm]:
-            chgSubaft = self.muj_finalstate(k, self.after(t), table) # Fourth term
-            for term in terminals:
-                changes[term] += matrices[self.prev(t)][j, k] * chgSubaft[term]
-        return changes
-    def prev(self,index,period=None):
-        if period is None:
-            period = self.numTerminal
-        if int(index)==0:
-            return int(period-1)
-        else:
-            return int(index-1)
-    def after(self,index,period=None):
-        if period is None:
-            period = self.numTerminal
-        if int(index)==(period-1):
-            return 0
-        else:
-            return int(index+1)
     def solve(self):
-        nfm = self.numForwardMover
-        termVoltages = np.array([0]*self.numTerminal)
         zeroVoltTerminal = self.zeroVoltTerminal
         if np.linalg.det(self.mastermat()) != 0:
             termVoltages = np.linalg.solve(self.mastermat(),self.nodesCurrent)
@@ -89,36 +48,6 @@ class System:
             warnings.warn("Your matrix is singular. `np.linalg.lstsq` is used to find an approximate solution.")
             termVoltages,_,_,_ = np.linalg.lstsq(self.mastermat(),self.nodesCurrent,rcond=None)
         return termVoltages-termVoltages[zeroVoltTerminal]
-    def voltage_tracker(self):
-        nfm = self.numForwardMover
-        termVoltages = self.solve()
-        states = []
-        tnm= self.totalNumMover
-        for i, effMat in enumerate(self.graph):
-            initState = []
-            initState.extend([termVoltages[i]]*nfm)
-            if i == self.numTerminal-1:
-                initState.extend([termVoltages[0]]*(tnm-nfm))
-            else:
-                initState.extend([termVoltages[i+1]]*(tnm-nfm))
-            states.append(effMat.status_check(initState))
-        return states,termVoltages
-    def voltage_plot(self,probeWidth=5):
-        tnm = self.totalNumMover
-        nfm = self.numForwardMover
-        states, termVoltages  = self.voltage_tracker()
-        preStatus = np.hstack((np.ones((tnm, probeWidth)) * termVoltages[0], states[0]))
-        allStatus = []
-        for state, term in zip(states[1:], termVoltages[1:]):
-            allStatus = np.hstack((np.hstack((preStatus, np.ones((tnm, probeWidth)) * term)), state))
-            preStatus = allStatus
-        try:
-            [plt.plot(edgeStatus,'r') for edgeStatus in allStatus[:nfm]]
-            if nfm<tnm: # There exist one or more backward movers
-                [plt.plot(edgeStatus,'b') for edgeStatus in allStatus[nfm:]]
-            return True
-        except:
-            return False
     def plot(self,figsize=(12,10)):
         tnm = self.totalNumMover
         nfm = self.numForwardMover
@@ -154,6 +83,42 @@ class System:
             return axs
         except:
             return False
+    def muj_finalstate(self, j, t, table):
+        matrices = [edge.trans_mat() for edge in self.graph]
+        nfm = self.numForwardMover
+        tnm = self.totalNumMover
+        ntm = self.numTerminal
+        changes = [0] * ntm
+        fullset = np.arange(0, tnm, 1, dtype=int).tolist()
+        terminals = np.arange(0, ntm, 1, dtype=int).tolist()
+        for k in [s for s in table[self.prev(t)][1] if s < nfm]:
+            changes[self.prev(t)] += matrices[self.prev(t)][j, k]  # First term
+        for k in [s for s in table[t][1] if s >= nfm]:
+            changes[t] += matrices[self.prev(t)][j, k]  # Second term
+        for k in [s for s in list(set(fullset) - set(table[self.prev(t)][1])) if s < nfm]:
+            chgSubpre = self.muj_finalstate(k, self.prev(t), table)  # Third term
+            for term in terminals:
+                changes[term] += matrices[self.prev(t)][j, k] * chgSubpre[term]
+        for k in [s for s in list(set(fullset) - set(table[t][1])) if s >= nfm]:
+            chgSubaft = self.muj_finalstate(k, self.after(t), table)  # Fourth term
+            for term in terminals:
+                changes[term] += matrices[self.prev(t)][j, k] * chgSubaft[term]
+        return changes
+    def prev(self, index, period=None):
+        if period is None:
+            period = self.numTerminal
+        if int(index) == 0:
+            return int(period - 1)
+        else:
+            return int(index - 1)
+    def after(self, index, period=None):
+        if period is None:
+            period = self.numTerminal
+        if int(index) == (period - 1):
+            return 0
+        else:
+            return int(index + 1)
+
 class Edge:
     def __init__(self,sequence,totalNumMover,numForwardMover):
         self.seq = sequence
@@ -176,9 +141,9 @@ class Edge:
         for mat1 in matrices[1:]:
             res = merge(mat0, mat1, nfm)
             mat0 = res
-        # Return the final merged matrix 'res' and the input sequence 'seq'.
+        # Return the final "merged" matrix 'res' and the input sequence 'seq'.
         return res
-    def status_check(self,initState):
+    def status_check(self,initStates):
         nfm = self.numForwardMover
         seq = self.seq
         # Create an empty list to store matrices that will be constructed based on the input sequence 'seq'.
@@ -190,7 +155,6 @@ class Edge:
         for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
             matrix = scatter_matrix(tnm, id1, id2, v)
             matrices.append(matrix)
-
         # Initialize the result matrix 'mat0' with the first matrix in the 'matrices' list.
         mat0 = matrices[0]
         # Forward-propagation process: calculate all transformation parameters
@@ -198,8 +162,8 @@ class Edge:
             omega = merge(mat0, mat1, nfm)
             thetaMatrices.append(theta(mat0, mat1, nfm))
             mat0 = omega  # omega connects the initial and final states by the end of this for-loop.
-        finalState = np.dot(omega, initState)
-        tempState = copy.deepcopy(initState)
+        finalState = np.dot(omega, initStates)
+        tempState = copy.deepcopy(initStates)
         # Back-propagation process: calculate all intermediate states
         for i, thetaMatrix in enumerate(thetaMatrices[::-1]):
             newState = np.dot(thetaMatrix, tempState)
@@ -210,10 +174,10 @@ class Edge:
                 tempState = newState
         # connect intermediate states with initial and final states
         for i in range(nfm):
-            states[i, 0] = initState[i]
+            states[i, 0] = initStates[i]
             states[i, -1] = finalState[i]
         for j in range(nfm, tnm):
-            states[j, -1] = initState[j]
+            states[j, -1] = initStates[j]
             states[j, 0] = finalState[j]
         return states
     def plot(self,initStates,ax1=None,ax2=None):
@@ -252,9 +216,10 @@ class Edge:
             return (ax1, ax2)
         except:
             return False
-#================================================================
-#core functions
+#========================================================================================================
 
+#========================================================================================================
+# core functions
 def pmatrix(Om1,Om2,nfm):
     m = Om1.shape[0]
     p = np.zeros((m-nfm,m-nfm))
@@ -305,7 +270,6 @@ def theta(Om1,Om2,nfm):
                 th[k,i] = det(replace_colnum(p,k-nfm,l[:,i-nfm]))/detp
     return th
 
-
 def merge(Om1,Om2,nfm):
     m = Om1.shape[0]
     th = theta(Om1,Om2,nfm)
@@ -330,11 +294,10 @@ def scatter_matrix(m,id1,id2,value):
     matrix[id2,id2] = 1-value/2
     matrix[id2,id1] = value/2
     return matrix
-
 #====================================================================================
 
 
-#------------------------------------------------------------------------------------
+#====================================================================================
 # helper functions
 def generate_bynumber(messages):
     '''
