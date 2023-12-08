@@ -5,13 +5,14 @@ import warnings, copy, random
 # Define Class System and Edge
 class System:
     def __init__(self,nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates = None):
-        self.nodesCurrent = nodesCurrent
-        self.graph = graph
-        self.totalNumMover = graph[0].trans_mat().shape[0]
-        self.numForwardMover= numForwardMover
-        self.numTerminal = len(graph)
-        self.zeroVoltTerminal = zeroVoltTerminal
-        self.blockStates = blockStates
+        if system_input_filter(nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates):
+            self.nodesCurrent = nodesCurrent
+            self.graph = graph
+            self.totalNumMover = graph[0].trans_mat().shape[0]
+            self.numForwardMover= numForwardMover
+            self.numTerminal = len(graph)
+            self.zeroVoltTerminal = zeroVoltTerminal
+            self.blockStates = blockStates
     def mastermat(self):
         blockStates = self.blockStates
         edges = [edge.trans_mat() for edge in self.graph]
@@ -121,9 +122,10 @@ class System:
 
 class Edge:
     def __init__(self,sequence,totalNumMover,numForwardMover):
-        self.seq = sequence
-        self.totalNumMover = totalNumMover
-        self.numForwardMover = numForwardMover
+        if edge_input_filter(sequence,totalNumMover,numForwardMover):
+            self.seq = sequence
+            self.totalNumMover = totalNumMover
+            self.numForwardMover = numForwardMover
     def get_seq(self):
         return self.seq
     def trans_mat(self):
@@ -311,3 +313,100 @@ def generate_bynumber(messages):
         seq_in_list.extend([message[:3]]*message[3])
         random.shuffle(seq_in_list)
     return np.array(seq_in_list)
+
+def check_blockstates_structure(blockStates):
+    if not isinstance(blockStates,list):
+        return False
+    for item in blockStates:
+        # Check if each item in the data is a list of length 2
+        if not (isinstance(item, list) and len(item) == 2):
+            return False
+        # Check if the first element of each item is an integer
+        if not isinstance(item[0], int):
+            return False
+        # Check if the second element is a list of integers
+        if not (isinstance(item[1], list) and all(isinstance(x, int) for x in item[1])):
+            return False
+    return True
+
+def check_blockstates_value(blockStates,totalNumMover,numTerminal):
+    for item in blockStates:
+        if item[0]> numTerminal-1:
+            return False
+        else:
+            for state in item[1]:
+                if state > totalNumMover-1:
+                    return False
+    return True
+
+def check_sequence_structure(sequence):
+    if not isinstance(sequence,list):
+        return False
+    for item in sequence:
+        # Check if each item is a list of length 4
+        if not (isinstance(item, list) and len(item) == 4):
+            return False
+        # Check if the first two elements are integers
+        if not all(isinstance(x, int) for x in item[:2]):
+            return False
+        # Check if the third elements are floats
+        if not all(isinstance(x, float) for x in item[2]):
+            return False
+        # Check if the fourth elements is integers
+        if not all(isinstance(x, int) for x in item[3]):
+            return False
+    return True
+
+def check_sequence_value(sequence,totalNumMover):
+    for item in sequence:
+        if all(state>totalNumMover-1 for state in item[:2]):
+            return False
+        if item[2]>1 or item[2]<0:
+            return False
+        if item[3]<0:
+            return False
+    return True
+
+
+def system_input_filter(nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates):
+    # Check the data type and structure
+    if not isinstance(nodesCurrent, list):
+        raise TypeError("Expected nodeCurrent to be a list")
+    if not isinstance(graph, list):
+        raise TypeError("Expected graph to be a list")
+    if not all(isinstance(edge,Edge) for edge in graph):
+        raise TypeError("Expected every element in graph to be an instance of Edge")
+    if not isinstance(numForwardMover,int):
+        raise TypeError("Expected number of forward movers is an non-negative integer")
+    if not isinstance(zeroVoltTerminal,int):
+        raise TypeError("Expected index of the zero-voltage terminal is an non-negative integer")
+    # Check the data value
+    if len(graph) is not len(nodesCurrent):
+        raise ValueError("The graph size "+str(len(graph))+" and the provided current of nodes "+str(len(nodesCurrent))+" do not match. ")
+    if zeroVoltTerminal>=len(graph):
+        raise ValueError("The index of the zero-voltage terminal is out of range from 0 to "+str(len(graph)-1))
+    if numForwardMover>=len(graph):
+        raise ValueError("The number of forward movers should be not larger than the total number of movers"+str(len(graph)))
+    if blockStates is not None:
+        if not check_blockstates_structure(blockStates):
+            raise TypeError("Expected blockstates has a structure formulated as [[# terminal index, [# all blocked states from this terminal],...]]")
+        if check_blockstates_value(blockStates,graph[0].trans_mat().shape[0],len(graph)):
+            raise ValueError("The blockstates contains unphysical parameters")
+    return True
+
+def edge_input_filter(sequence,totalNumMover,numForwardMover):
+    # Check the data type and structure
+    if not isinstance(sequence,list):
+        raise TypeError("Expected sequence to be a list")
+    if not isinstance(totalNumMover,int):
+        raise TypeError("Expected total number of movers is an non-negative integer")
+    if not isinstance(numForwardMover,int):
+        raise TypeError("Expected number of forward movers is an non-negative integer")
+    if not check_sequence_structure(sequence):
+        raise TypeError("Expected sequence has a structure formulated as [[Flow #1(int), Flow #2(int), Value(float), Number(int)],...]")
+    # Check the data value
+    if numForwardMover >= totalNumMover:
+        raise ValueError("The number of forward movers should be not larger than the total number of movers " + str(totalNumMover))
+    if not check_sequence_value(sequence,totalNumMover):
+        raise ValueError("The sequence contains unphysical parameters")
+    return True
