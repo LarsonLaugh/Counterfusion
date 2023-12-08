@@ -340,30 +340,27 @@ def check_blockstates_value(blockStates,totalNumMover,numTerminal):
     return True
 
 def check_sequence_structure(sequence):
-    if not isinstance(sequence,list):
+    if not isinstance(sequence,np.ndarray):
         return False
-    for item in sequence:
-        # Check if each item is a list of length 4
-        if not (isinstance(item, list) and len(item) == 4):
+    sequence_list = sequence.tolist()
+    for item in sequence_list:
+        # Check if each item is a list of length 3
+        if not (isinstance(item, list) and len(item) == 3):
             return False
         # Check if the first two elements are integers
-        if not all(isinstance(x, int) for x in item[:2]):
+        if not all(isinstance(x, (int,float)) for x in item[:2]):
             return False
         # Check if the third elements are floats
-        if not all(isinstance(x, float) for x in item[2]):
-            return False
-        # Check if the fourth elements is integers
-        if not all(isinstance(x, int) for x in item[3]):
+        if not isinstance(item[2], (int,float)):
             return False
     return True
 
 def check_sequence_value(sequence,totalNumMover):
-    for item in sequence:
+    sequence_list = sequence.tolist()
+    for item in sequence_list:
         if all(state>totalNumMover-1 for state in item[:2]):
             return False
         if item[2]>1 or item[2]<0:
-            return False
-        if item[3]<0:
             return False
     return True
 
@@ -390,14 +387,14 @@ def system_input_filter(nodesCurrent,graph,numForwardMover,zeroVoltTerminal,bloc
     if blockStates is not None:
         if not check_blockstates_structure(blockStates):
             raise TypeError("Expected blockstates has a structure formulated as [[# terminal index, [# all blocked states from this terminal],...]]")
-        if check_blockstates_value(blockStates,graph[0].trans_mat().shape[0],len(graph)):
+        if not check_blockstates_value(blockStates,graph[0].trans_mat().shape[0],len(graph)):
             raise ValueError("The blockstates contains unphysical parameters")
     return True
 
 def edge_input_filter(sequence,totalNumMover,numForwardMover):
     # Check the data type and structure
-    if not isinstance(sequence,list):
-        raise TypeError("Expected sequence to be a list")
+    if not isinstance(sequence,np.ndarray):
+        raise TypeError("Expected sequence to be a numpy.ndarray")
     if not isinstance(totalNumMover,int):
         raise TypeError("Expected total number of movers is an non-negative integer")
     if not isinstance(numForwardMover,int):
