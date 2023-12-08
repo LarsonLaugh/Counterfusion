@@ -6,7 +6,7 @@ import warnings, copy, random, json
 # Define Class System and Edge
 class System:
     def __init__(self,nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates = None):
-        if system_input_filter(nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates):
+        if system_input_filter(nodesCurrent,graph,numForwardMover,graph[0].trans_mat().shape[0],zeroVoltTerminal,blockStates):
             self.nodesCurrent = nodesCurrent
             self.graph = graph
             self.totalNumMover = graph[0].trans_mat().shape[0]
@@ -406,7 +406,7 @@ def check_sequence_value(sequence,totalNumMover):
     return True
 
 
-def system_input_filter(nodesCurrent,graph,numForwardMover,zeroVoltTerminal,blockStates):
+def system_input_filter(nodesCurrent,graph,numForwardMover,totalNumMover,zeroVoltTerminal,blockStates):
     # Check the data type and structure
     if not isinstance(nodesCurrent, list):
         raise TypeError("Expected nodeCurrent to be a list")
@@ -423,7 +423,7 @@ def system_input_filter(nodesCurrent,graph,numForwardMover,zeroVoltTerminal,bloc
         raise ValueError("The graph size "+str(len(graph))+" and the provided current of nodes "+str(len(nodesCurrent))+" do not match. ")
     if zeroVoltTerminal>=len(graph):
         raise ValueError("The index of the zero-voltage terminal is out of range from 0 to "+str(len(graph)-1))
-    if numForwardMover>=len(graph):
+    if numForwardMover>totalNumMover:
         raise ValueError("The number of forward movers should be not larger than the total number of movers"+str(len(graph)))
     if blockStates is not None:
         if not check_blockstates_structure(blockStates):
@@ -443,7 +443,7 @@ def edge_input_filter(sequence,totalNumMover,numForwardMover):
     if not check_sequence_structure(sequence):
         raise TypeError("Expected sequence has a structure formulated as [[Flow #1(int), Flow #2(int), Value(float), Number(int)],...]")
     # Check the data value
-    if numForwardMover >= totalNumMover:
+    if numForwardMover > totalNumMover:
         raise ValueError("The number of forward movers should be not larger than the total number of movers " + str(totalNumMover))
     if not check_sequence_value(sequence,totalNumMover):
         raise ValueError("The sequence contains unphysical parameters")
