@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings, copy, random
+import os
+import warnings, copy, random, json
 #====================================================================================================
 # Define Class System and Edge
 class System:
@@ -59,7 +60,7 @@ class System:
         termVoltages = self.solve()
         plt.subplots_adjust(hspace=0.1)
         initStatesList = []
-        for t, edge in enumerate(edges):
+        for t in range(len(edges)):
             initStatesList.append([termVoltages[t] if j<nfm else termVoltages[self.after(t)] for j in range(tnm)])
         if blockStates is not None:
             idTerms, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
@@ -105,6 +106,37 @@ class System:
             for term in terminals:
                 changes[term] += matrices[self.prev(t)][j, k] * chgSubaft[term]
         return changes
+    def output_to_json(self,filename='data.json'):
+        blockStates = self.blockStates
+        numTerminal = self.numTerminal
+        nodesCurrent = self.nodesCurrent
+        nfm = self.numForwardMover
+        tnm = self.totalNumMover
+        edgeSequence = [edge.get_seq() for edge in self.graph]
+        edgeMat = [edge.trans_mat() for edge in self.graph]
+        initStatesList = []
+        termVoltages = self.solve()
+        for t in range(numTerminal):
+            initStatesList.append([termVoltages[t] if j < nfm else termVoltages[self.after(t)] for j in range(tnm)])
+        if blockStates is not None:
+            idTerms, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
+            terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
+            fullset = np.arange(0, tnm, 1, dtype=int).tolist()
+            table = [[term, list(set(fullset) - set(idEdges[idTerms.index(term)]))] if term in idTerms else [term, fullset] for term in terminals]
+            for t in idTerms:
+                for j in idEdges[idTerms.index(t)]:
+                    if j < nfm:
+                        initStatesList[t][j] = np.dot(self.muj_finalstate(j, t, table), termVoltages)
+                    else:
+                        initStatesList[self.prev(t)][j] = np.dot(self.muj_finalstate(j, self.after(t), table),termVoltages)
+        stateInfo = [edge.status_check(initStates) for edge, initStates in zip(self.graph,initStatesList)]
+        sysMat = self.mastermat()
+        blockStates = self.blockStates
+        try:
+            system_to_json(filename, edgeSequence, edgeMat, stateInfo, nodesCurrent, sysMat, termVoltages, blockStates)
+        except:
+            print("Error: Fail to write to "+filename)
+
     def prev(self, index, period=None):
         if period is None:
             period = self.numTerminal
@@ -218,6 +250,15 @@ class Edge:
             return (ax1, ax2)
         except:
             return False
+    def output_to_json(self, filename='data_edge.json'):
+        edgeSequence = self.get_seq()
+        edgeMat = self.trans_mat()
+        try:
+            edge_to_json(filename, edgeSequence, edgeMat)
+        except:
+            print("Error: Fail to write to "+filename)
+
+
 #========================================================================================================
 
 #========================================================================================================
@@ -407,3 +448,49 @@ def edge_input_filter(sequence,totalNumMover,numForwardMover):
     if not check_sequence_value(sequence,totalNumMover):
         raise ValueError("The sequence contains unphysical parameters")
     return True
+
+
+def system_to_json(file_path,edgeSequence,edgeMat,stateInfo,nodesCurrent,sysMat,termVolts,blockStates):
+    data = {
+        "edge information":{
+            "edgeSequence":edgeSequence,
+            "edgeMatrix":edgeMat,
+            "stateInformation":stateInfo
+        },
+        "system information":{
+            "nodesCurrent":nodesCurrent,
+            "systemMatrix":sysMat,
+            "terminalVoltages":termVolts,
+            "blockStates":blockStates}
+    }
+    if os.path.exists(file_path):
+        # Ask user for action
+        response = input(f"The file {file_path} already exists. Do you want to overwrite it? (yes/no): ").lower()
+        if response != 'yes':
+            print("Operation cancelled.")
+            return
+    with open(file_path,'w') as f:
+            json.dump(data,f,indent=4,cls=NumpyArrayEncoder)
+    print(f"Data written to {file_path}")
+
+def edge_to_json(file_path,edgeSequence,edgeMat):
+    data = {
+            "edgeSequence":edgeSequence,
+            "edgeMatrix":edgeMat,
+    }
+    if os.path.exists(file_path):
+        # Ask user for action
+        response = input(f"The file {file_path} already exists. Do you want to overwrite it? (yes/no): ").lower()
+        if response != 'yes':
+            print("Operation cancelled.")
+            return
+    with open(file_path,'w') as f:
+            json.dump(data,f,indent=4,cls=NumpyArrayEncoder)
+    print(f"Data written to {file_path}")
+
+class NumpyArrayEncoder(json.JSONEncoder):
+# A custom JSON encoder that handles NumPy arrays
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
