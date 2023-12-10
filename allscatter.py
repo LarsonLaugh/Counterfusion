@@ -136,7 +136,6 @@ class System:
             system_to_json(filename, edgeSequence, edgeMat, stateInfo, nodesCurrent, sysMat, termVoltages, blockStates)
         except:
             print("Error: Fail to write to "+filename)
-
     def prev(self, index, period=None):
         if period is None:
             period = self.numTerminal
@@ -257,8 +256,6 @@ class Edge:
             edge_to_json(filename, edgeSequence, edgeMat)
         except:
             print("Error: Fail to write to "+filename)
-
-
 #========================================================================================================
 
 #========================================================================================================
