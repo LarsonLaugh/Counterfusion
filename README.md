@@ -1,13 +1,13 @@
 # CounterFusion
-# ---
-This repository contains relevant algorithms and applications for the publications.
+
+---
+
+This repository contains relevant algorithms and applications for the paper in preparation.
 
 ## Features
 
-- **Detailed Analysis of Scattering Models**: The notebook provides an in-depth look at various aspects of scattering
-  models, explaining their theoretical foundations and practical implications.
-- **Computational Demonstrations**: Includes code snippets and computational models to simulate and analyze scattering
-  phenomena.
+- **Detailed Analysis of Markov-process-like interaction**:
+- **Computational Demonstrations**: 
 - **Visualizations and Plots**: Utilizes Python's plotting libraries to visualize the outcomes of the scattering models
   and their behaviors.
 
@@ -27,15 +27,13 @@ pip install numpy matplotlib
 ```
 
 ## Usage
-
-The notebook is systematically organized into various sections, each concentrating on different elements of scattering
-models:
-
-1. **Fundamentals of Scattering Models**: Introduces the basic concepts and mathematical foundations of scattering
-   models.
-2. **Simulation of Scattering Phenomena**: Provides code examples for simulating scattering, demonstrating how to
-   implement and visualize these models.
-3. **Analysis and Interpretation**: Discusses how to interpret the results obtained from the simulations, with an
+#### Edge class
+1. Define interactions
+2. Define the sequence of interactions
+#### System class
+3. Define the system constituted by several Edge instances.
+4. Define the individual paths of flows
+5. **Analysis and Interpretation**: Discusses how to interpret the results obtained from the simulations, with an
    emphasis on understanding the physical implications.
 
 ## License
