@@ -23,10 +23,10 @@ class System:
         mat = np.zeros((numTerminal,numTerminal))
         if blockStates is None:
             for t in range(numTerminal):
-                premat, aftmat = edges[self.prev(t)], edges[t]
+                premat, aftmat = edges[self._prev(t)], edges[t]
                 mat[t, t] = self.totalNumMover - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
-                mat[t, self.prev(t)] = -premat[:nfm, :nfm].sum()
-                mat[t, self.after(t)] = -aftmat[nfm:, nfm:].sum()
+                mat[t, self._prev(t)] = -premat[:nfm, :nfm].sum()
+                mat[t, self._after(t)] = -aftmat[nfm:, nfm:].sum()
         else:
             idTerms, idEdges= [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
@@ -35,9 +35,9 @@ class System:
             for t in range(numTerminal):
                 for k in table[t][1]:
                     if k<nfm:
-                        changes = self.muj_finalstate(k, t, table)
+                        changes = self._muj_finalstate(k, t, table)
                     else:
-                        changes = self.muj_finalstate(k,self.after(t),table)
+                        changes = self._muj_finalstate(k,self._after(t),table)
                     for term in terminals:
                         mat[t,term] -= changes[term]
                 mat[t,t]+=len(table[t][1])
@@ -61,7 +61,7 @@ class System:
         plt.subplots_adjust(hspace=0.1)
         initStatesList = []
         for t in range(len(edges)):
-            initStatesList.append([termVoltages[t] if j<nfm else termVoltages[self.after(t)] for j in range(tnm)])
+            initStatesList.append([termVoltages[t] if j<nfm else termVoltages[self._after(t)] for j in range(tnm)])
         if blockStates is not None:
             idTerms, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
@@ -70,9 +70,9 @@ class System:
             for t in idTerms:
                 for j in idEdges[idTerms.index(t)]:
                     if j < nfm:
-                        initStatesList[t][j] = np.dot(self.muj_finalstate(j, t, table), termVoltages)
+                        initStatesList[t][j] = np.dot(self._muj_finalstate(j, t, table), termVoltages)
                     else:
-                        initStatesList[self.prev(t)][j] = np.dot(self.muj_finalstate(j, self.after(t), table), termVoltages)
+                        initStatesList[self._prev(t)][j] = np.dot(self._muj_finalstate(j, self._after(t), table), termVoltages)
         try:
             for t, (initStates,edge) in enumerate(zip(initStatesList,edges)):
                 edge.plot(initStates, ax1=axs[0,t], ax2=axs[1,t])
@@ -81,11 +81,11 @@ class System:
                 else:
                     axs[1, 0].set_ylim(-0.1, 1.05)
                 axs[1, t].axhline(y=termVoltages[t],xmin=0,xmax=0.4,linestyle='-',color='y')
-                axs[1, t].axhline(y=termVoltages[self.after(t)], xmin=0.6, xmax=1, linestyle='-', color='y')
+                axs[1, t].axhline(y=termVoltages[self._after(t)], xmin=0.6, xmax=1, linestyle='-', color='y')
             return axs
         except:
             return False
-    def muj_finalstate(self, j, t, table):
+    def _muj_finalstate(self, j, t, table):
         matrices = [edge.trans_mat() for edge in self.graph]
         nfm = self.numForwardMover
         tnm = self.totalNumMover
@@ -93,18 +93,18 @@ class System:
         changes = [0] * ntm
         fullset = np.arange(0, tnm, 1, dtype=int).tolist()
         terminals = np.arange(0, ntm, 1, dtype=int).tolist()
-        for k in [s for s in table[self.prev(t)][1] if s < nfm]:
-            changes[self.prev(t)] += matrices[self.prev(t)][j, k]  # First term
+        for k in [s for s in table[self._prev(t)][1] if s < nfm]:
+            changes[self._prev(t)] += matrices[self._prev(t)][j, k]  # First term
         for k in [s for s in table[t][1] if s >= nfm]:
-            changes[t] += matrices[self.prev(t)][j, k]  # Second term
-        for k in [s for s in list(set(fullset) - set(table[self.prev(t)][1])) if s < nfm]:
-            chgSubpre = self.muj_finalstate(k, self.prev(t), table)  # Third term
+            changes[t] += matrices[self._prev(t)][j, k]  # Second term
+        for k in [s for s in list(set(fullset) - set(table[self._prev(t)][1])) if s < nfm]:
+            chgSubpre = self._muj_finalstate(k, self._prev(t), table)  # Third term
             for term in terminals:
-                changes[term] += matrices[self.prev(t)][j, k] * chgSubpre[term]
+                changes[term] += matrices[self._prev(t)][j, k] * chgSubpre[term]
         for k in [s for s in list(set(fullset) - set(table[t][1])) if s >= nfm]:
-            chgSubaft = self.muj_finalstate(k, self.after(t), table)  # Fourth term
+            chgSubaft = self._muj_finalstate(k, self._after(t), table)  # Fourth term
             for term in terminals:
-                changes[term] += matrices[self.prev(t)][j, k] * chgSubaft[term]
+                changes[term] += matrices[self._prev(t)][j, k] * chgSubaft[term]
         return changes
     def output_to_json(self,filename='data.json'):
         blockStates = self.blockStates
@@ -117,7 +117,7 @@ class System:
         initStatesList = []
         termVoltages = self.solve()
         for t in range(numTerminal):
-            initStatesList.append([termVoltages[t] if j < nfm else termVoltages[self.after(t)] for j in range(tnm)])
+            initStatesList.append([termVoltages[t] if j < nfm else termVoltages[self._after(t)] for j in range(tnm)])
         if blockStates is not None:
             idTerms, idEdges = [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
@@ -126,9 +126,9 @@ class System:
             for t in idTerms:
                 for j in idEdges[idTerms.index(t)]:
                     if j < nfm:
-                        initStatesList[t][j] = np.dot(self.muj_finalstate(j, t, table), termVoltages)
+                        initStatesList[t][j] = np.dot(self._muj_finalstate(j, t, table), termVoltages)
                     else:
-                        initStatesList[self.prev(t)][j] = np.dot(self.muj_finalstate(j, self.after(t), table),termVoltages)
+                        initStatesList[self._prev(t)][j] = np.dot(self._muj_finalstate(j, self._after(t), table),termVoltages)
         stateInfo = [edge.status_check(initStates) for edge, initStates in zip(self.graph,initStatesList)]
         sysMat = self.mastermat()
         blockStates = self.blockStates
@@ -136,14 +136,14 @@ class System:
             system_to_json(filename, edgeSequence, edgeMat, stateInfo, nodesCurrent, sysMat, termVoltages, blockStates)
         except:
             print("Error: Fail to write to "+filename)
-    def prev(self, index, period=None):
+    def _prev(self, index, period=None):
         if period is None:
             period = self.numTerminal
         if int(index) == 0:
             return int(period - 1)
         else:
             return int(index - 1)
-    def after(self, index, period=None):
+    def _after(self, index, period=None):
         if period is None:
             period = self.numTerminal
         if int(index) == (period - 1):
