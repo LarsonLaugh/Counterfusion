@@ -15,6 +15,12 @@ class System:
             self.zeroVoltTerminal = zeroVoltTerminal
             self.blockStates = blockStates
     def mastermat(self):
+        """ Obtain the master matrix equation.
+
+        Arg:
+
+        Returns:
+        """
         blockStates = self.blockStates
         edges = [edge.trans_mat() for edge in self.graph]
         numTerminal = self.numTerminal
@@ -139,17 +145,17 @@ class System:
     def _prev(self, index, period=None):
         if period is None:
             period = self.numTerminal
-        if int(index) == 0:
-            return int(period - 1)
+        if index == 0:
+            return period - 1
         else:
-            return int(index - 1)
+            return index - 1
     def _after(self, index, period=None):
         if period is None:
             period = self.numTerminal
-        if int(index) == (period - 1):
+        if index == period - 1:
             return 0
         else:
-            return int(index + 1)
+            return index + 1
 
 class Edge:
     def __init__(self,sequence,totalNumMover,numForwardMover):
