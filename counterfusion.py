@@ -357,7 +357,7 @@ def interaction_builder(dimension,id1,id2,value):
         matrix[id1,id1] = 1-value/2
         matrix[id1,id2] = value/2
         matrix[id2,id1] = value/2
-        mratix[id2,id2] = 1-value/2
+        matrix[id2,id2] = 1-value/2
     elif isinstance(value,list) and len(value)==2 and all(isinstance(v,(int,float)) for v in value):
         # Build a left stochastic matrix for Markov-process (each column summing to 1)
         id1,id2 = int(id1),int(id2)
@@ -378,9 +378,9 @@ def interaction_builder(dimension,id1,id2,value):
 def generate_bynumber(messages):
     """ Generate a sequence according to given messages.
     A "message" should be formatted into a nested list structure, e.g.,
-    [[0,1,0.4,3],[0,2,0.3,5],[1,2,0.5,3]]. Inside the first item [0,1,0.4,3], the first
+    [[0,1,0.4,3],[0,2,[0.3,0.1],5],[1,2,0.5,3]]. Inside the first item [0,1,0.4,3], the first
     two items 0 and 1 indicate which two edge states participate, the third item 0.4 gives
-    the value for this matrix, the last item 3 represents the number of scattering events.
+    the value(s) for this matrix, the last item 3 represents the number of scattering events.
     """
     seq_in_list = []
     for message in messages:
