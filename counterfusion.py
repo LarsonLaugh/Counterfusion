@@ -191,7 +191,7 @@ class Edge:
         matrices = []
         # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
         for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
-            matrix = scatter_matrix(tnm, id1, id2, v)
+            matrix = interaction_builder(tnm, id1, id2, v)
             matrices.append(matrix)
         mat0 = matrices[0]
         # Forward-propagation process: calculate all transformation parameters
@@ -209,7 +209,7 @@ class Edge:
         tnm = self.totalNumMover
         states = np.zeros([tnm, len(seq) + 1])
         for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
-            matrix = scatter_matrix(tnm, id1, id2, v)
+            matrix = interaction_builder(tnm, id1, id2, v)
             matrices.append(matrix)
         mat0 = matrices[0]
         # Forward-propagation process: calculate all transformation parameters
@@ -349,13 +349,26 @@ def merge(Om1,Om2,nfm):
                 Om3[k,i] = sum([Om1[k,j]*th[j,i] for j in range(nfm,m)])
     return Om3
 
-def scatter_matrix(m,id1,id2,value):
-    id1,id2 = int(id1),int(id2)
-    matrix = np.eye(m)
-    matrix[id1,id1] = 1-value/2
-    matrix[id1,id2] = value/2
-    matrix[id2,id2] = 1-value/2
-    matrix[id2,id1] = value/2
+def interaction_builder(dimension,id1,id2,value):
+    if isinstance(value,(int,float)):
+        # Build a doubly stochastic matrix
+        id1,id2 = int(id1),int(id2)
+        matrix = np.eye(dimension)
+        matrix[id1,id1] = 1-value/2
+        matrix[id1,id2] = value/2
+        matrix[id2,id1] = value/2
+        mratix[id2,id2] = 1-value/2
+    elif isinstance(value,list) and len(value)==2 and all(isinstance(v,(int,float) for v in value):
+        # Build a left stochastic matrix for Markov-process (each column summing to 1)
+        id1,id2 = int(id1),int(id2)
+        matrix = np.eye(dimension)
+        matrix[id1,id1] = 1-value[0]
+        matrix[id1,id2] = value[1]
+        matrix[id2,id1] = value[0]
+        matrix[id2,id2] = 1-value[1]
+    else:
+        raise ValueError("value needs to be either a float/int (doubly stochastic matrix) or a list including 2 "
+                         "probabilities (left stochastic matrix) ")
     return matrix
 #====================================================================================
 
@@ -366,7 +379,7 @@ def generate_bynumber(messages):
     """ Generate a sequence according to given messages.
     A "message" should be formatted into a nested list structure, e.g.,
     [[0,1,0.4,3],[0,2,0.3,5],[1,2,0.5,3]]. Inside the first item [0,1,0.4,3], the first
-    two items 0 and 1 tell which two edge states participate, the third item 0.4 gives
+    two items 0 and 1 indicate which two edge states participate, the third item 0.4 gives
     the value for this matrix, the last item 3 represents the number of scattering events.
     """
     seq_in_list = []
