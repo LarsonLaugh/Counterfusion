@@ -358,7 +358,7 @@ def interaction_builder(dimension,id1,id2,value):
         matrix[id1,id2] = value/2
         matrix[id2,id1] = value/2
         mratix[id2,id2] = 1-value/2
-    elif isinstance(value,list) and len(value)==2 and all(isinstance(v,(int,float) for v in value):
+    elif isinstance(value,list) and len(value)==2 and all(isinstance(v,(int,float)) for v in value):
         # Build a left stochastic matrix for Markov-process (each column summing to 1)
         id1,id2 = int(id1),int(id2)
         matrix = np.eye(dimension)
