@@ -45,9 +45,12 @@ class System:
         if blockStates is None:
             for t in range(numTerminal):
                 premat, aftmat = edges[self._prev(t)], edges[t]
-                mat[t, t] = self.totalNumMover - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
-                mat[t, self._prev(t)] = -premat[:nfm, :nfm].sum()
-                mat[t, self._after(t)] = -aftmat[nfm:, nfm:].sum()
+                mat[t, t] = tnm - premat[:nfm, nfm:].sum() - aftmat[nfm:, :nfm].sum()
+                if numTerminal > 2:
+                    mat[t, self._prev(t)] = -premat[:nfm, :nfm].sum()
+                    mat[t, self._after(t)] = -aftmat[nfm:, nfm:].sum()
+                else:
+                    mat[t, self._prev(t)] = -premat[:nfm, :nfm].sum()-aftmat[nfm:, nfm:].sum()
         else:
             idTerms, idEdges= [info[0] for info in blockStates], [info[1] for info in blockStates]
             terminals = np.arange(0, numTerminal, 1, dtype=int).tolist()
@@ -189,12 +192,16 @@ class Edge:
         tnm = self.totalNumMover
         nfm = self.numForwardMover
         matrices = []
+        if len(seq)==0:
+            return np.eye(tnm)
         # Iterate through each element (interaction type 't' and strength 'v') in 'seq'.
         for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
             matrix = interaction_builder(tnm, id1, id2, v)
             matrices.append(matrix)
         mat0 = matrices[0]
         # Forward-propagation process: calculate all transformation parameters
+        if len(matrices)<2:
+            return mat0
         for mat1 in matrices[1:]:
             res = merge(mat0, mat1, nfm)
             mat0 = res
