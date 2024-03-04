@@ -2,20 +2,8 @@
 
 ---
 
-This repository implements algorithms for the paper in preparation. To dive deeper, please visit
+This repository implements algorithms for a paper in preparation. To dive deeper, please visit
 [my personal website](http://lixianphwang.com/projects/1_project/).
-
-## Features
-
-- **Analysis of Markov-process between the past and the future**: Provide the calculation of the cumulative effect of a
-  sequence of Markov-process-like interaction with predefined probabilities. Especially, these states can evolve in
-  reversal direction in time: one moves into the future, one rolls back into the past.
-- **Analysis of highly-correlated version of Landauer-Buettiker formalism**: In condensed matter physics,
-  Landauer-Buettiker formalism is famous for its elegant approach to solving voltages in a non- or low- interacting
-  system. Our algorithm enables the analysis in a high-interacting domain where all edge states interact with each
-  other, thus allowing for $C_n^2$ interaction types where $n$ is the number of edge states.
-- **Visualizations**: Our algorithm also provides access to the instant states after each interaction, thus visualizes
-  the evolution of all interacting states.
 
 ## Prerequisites
 
