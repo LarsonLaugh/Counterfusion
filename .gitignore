@@ -1,0 +1,6 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+*.json
+private/
+*.pdf
