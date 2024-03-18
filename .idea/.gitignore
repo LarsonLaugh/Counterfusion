@@ -2,5 +2,5 @@
 /shelf/
 /workspace.xml
 *.json
-/private
+private/
 *.pdf
