@@ -335,7 +335,19 @@ class Edge:
         thetaMatrices = []
         tnm = self.totalNumMover
         states = np.zeros([tnm, len(seq) + 1])
+<<<<<<< HEAD:counterfusion/classes.py
         # Build matrices for each interaction
+=======
+        if len(seq)==0: # when there is no interaction
+            for i in range(nfm):
+                states[i, 0] = initStates[i]
+                states[i, -1] = initStates[i]
+            for j in range(nfm, tnm):
+                states[j, -1] = initStates[j]
+                states[j, 0] = initStates[j]
+            return states
+        
+>>>>>>> 372aaed3c3b664ee5efb4cf142ef097d861cd525:counterfusion.py
         for id1, id2, v in zip(seq[:, 0], seq[:, 1], seq[:, 2]):
             matrix = interaction_builder(tnm, id1, id2, v)
             matrices.append(matrix)
@@ -347,12 +359,25 @@ class Edge:
             for j, mat in enumerate(matrices):
                 states[:, j + 1] = np.dot(mat, states[:, j])
             return states
+<<<<<<< HEAD:counterfusion/classes.py
 
         # Calculate the propagation of states across all interactions
         for mat1 in matrices[1:]:
             omega = merge(mat0, mat1, nfm)
             thetaMatrices.append(theta(mat0, mat1, nfm))
             mat0 = omega  # omega connects the initial and final states by the end of this for-loop.
+=======
+        
+        # Forward-propagation process: calculate all transformation parameters
+        if len(matrices)>1:
+            for mat1 in matrices[1:]:
+                omega = merge(mat0, mat1, nfm)
+                thetaMatrices.append(theta(mat0, mat1, nfm))
+                mat0 = omega  # omega connects the initial and final states by the end of this for-loop.
+        else:# only a single interaction is present
+            omega = mat0
+        
+>>>>>>> 372aaed3c3b664ee5efb4cf142ef097d861cd525:counterfusion.py
         finalState = np.dot(omega, initStates)
         # Backward calculation for intermediate states
         tempState = copy.deepcopy(initStates)
