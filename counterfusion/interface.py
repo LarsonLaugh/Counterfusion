@@ -18,7 +18,7 @@ import warnings, copy, random, json
 import numpy as np
 import matplotlib.pyplot as plt
 from .algorithm import *
-from .auxiliary import *
+from .utils import *
 
 __all__ = ['System','Edge','system_input_filter','edge_input_filter']
 
