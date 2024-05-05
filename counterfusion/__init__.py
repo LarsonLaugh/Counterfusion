@@ -15,7 +15,7 @@
 # Merge the public interface of all submodules.
 
 from .algorithm import *
-from .auxiliary import *
-from .classes import *
+from .utils import *
+from .interface import *
 
-__all__ = algorithm.__all__ + auxiliary.__all__ + classes.__all__
+__all__ = algorithm.__all__ + utils.__all__ + interface.__all__
