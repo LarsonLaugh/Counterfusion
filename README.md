@@ -3,19 +3,22 @@
 This repository implements algorithms for a paper in preparation. To dive deeper, please visit
 [my personal website](http://lixianphwang.com/projects/1_project/).
 
-## Prerequisites
-
-To effectively engage with the notebook, the following Python packages are required:
-
-- `numpy`: For handling numerical computations and array operations.
-- `matplotlib`: Essential for creating and displaying graphs and visualizations.
 
 ## Installation
-
-Ensure you have the necessary packages installed by running:
-
+PyPI
 ```bash
-pip install numpy matplotlib
+python -m venv env
+source env/bin/activate
+pip install counterfusion==0.1.1
+```
+
+Git clone 
+```bash
+git clone git@github.com:LarsonLaugh/Counterfusion.git
+cd Counterfusion
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
 ```
 
 ## Usage
