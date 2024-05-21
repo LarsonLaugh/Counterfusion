@@ -7,3 +7,7 @@ private/
 .idea/
 .ipynb_checkpoints/
 __pycache__/
+test_env/
+.pypirc
+counterfusion.egg-info/
+.pytest_cache/
