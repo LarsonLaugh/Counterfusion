@@ -32,14 +32,11 @@ from .utils import (
 
 __all__ = ["System", "Edge", "system_input_filter", "edge_input_filter"]
 
-<<<<<<< HEAD
-__all__ = ["System", "Edge", "system_input_filter", "edge_input_filter"]
-
-=======
->>>>>>> 73bcb0011276a97dabaccfa8940180c8f3d5708a
 
 # ====================================================================================================
 # Define the System class
+
+
 class System:
     def __init__(
         self, nodesCurrent, graph, numForwardMover, zeroVoltTerminal, blockStates=None
@@ -49,16 +46,6 @@ class System:
 
         Args:
             nodesCurrent (np.array): The current values at each node in the system.
-<<<<<<< HEAD
-            graph (list): List of edge objects that describe the system's connectivity and behavior.
-            numForwardMover (int): The number of forward movers in the system's states.
-            zeroVoltTerminal (int): The index of the terminal with zero voltage, used as a reference.
-            blockStates (list, optional): States that are blocked from changing, possibly due to external
-            constraints.
-
-        The constructor also performs input validation using `system_input_filter` to ensure valid initial
-        settings.
-=======
             graph (list): List of edge objects that describe the system's connectivity
               and behavior.
             numForwardMover (int): The number of forward movers in the system's states.
@@ -70,7 +57,6 @@ class System:
 
         The constructor also performs input validation using `system_input_filter` to
         ensure valid initial settings.
->>>>>>> 73bcb0011276a97dabaccfa8940180c8f3d5708a
         """
         # Validate the initial setup for the system's configuration
         if system_input_filter(
