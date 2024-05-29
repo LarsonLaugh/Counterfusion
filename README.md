@@ -1,5 +1,7 @@
 # CounterFusion
 
+![Build Status](https://github.com/LarsonLaugh/Counterfusion/actions/workflows/ci.yml/badge.svg)
+
 This repository implements algorithms for a paper in preparation. To dive deeper, please visit
 [my personal website](http://lixianphwang.com/projects/1_project/).
 
