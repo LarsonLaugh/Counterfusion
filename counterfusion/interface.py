@@ -12,16 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import os
-import warnings, copy, random, json
+import warnings
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
-from .algorithm import *
-from .utils import *
+from .algorithm import (
+    theta,
+    merge,
+    interaction_builder,
+)
+from .utils import (
+    check_blockstates_structure,
+    check_blockstates_value,
+    check_sequence_structure,
+    check_sequence_value,
+    system_to_json,
+    edge_to_json,
+)
 
 __all__ = ["System", "Edge", "system_input_filter", "edge_input_filter"]
 
+<<<<<<< HEAD
+__all__ = ["System", "Edge", "system_input_filter", "edge_input_filter"]
+
+=======
+>>>>>>> 73bcb0011276a97dabaccfa8940180c8f3d5708a
 
 # ====================================================================================================
 # Define the System class
@@ -34,6 +49,7 @@ class System:
 
         Args:
             nodesCurrent (np.array): The current values at each node in the system.
+<<<<<<< HEAD
             graph (list): List of edge objects that describe the system's connectivity and behavior.
             numForwardMover (int): The number of forward movers in the system's states.
             zeroVoltTerminal (int): The index of the terminal with zero voltage, used as a reference.
@@ -42,6 +58,19 @@ class System:
 
         The constructor also performs input validation using `system_input_filter` to ensure valid initial
         settings.
+=======
+            graph (list): List of edge objects that describe the system's connectivity
+              and behavior.
+            numForwardMover (int): The number of forward movers in the system's states.
+            zeroVoltTerminal (int): The index of the terminal with zero voltage, used
+            as a reference.
+            blockStates (list, optional): States that are blocked from changing,
+            possibly due to external
+            constraints.
+
+        The constructor also performs input validation using `system_input_filter` to
+        ensure valid initial settings.
+>>>>>>> 73bcb0011276a97dabaccfa8940180c8f3d5708a
         """
         # Validate the initial setup for the system's configuration
         if system_input_filter(
@@ -66,7 +95,8 @@ class System:
 
     def mastermat(self):
         """
-        Calculates the master matrix based on the system's configuration which is used to solve the system equations.
+        Calculates the master matrix based on the system's configuration which is
+        used to solve the system equations.
         """
         blockStates = self.blockStates
         edges = [edge.trans_mat() for edge in self.graph]
@@ -205,6 +235,7 @@ class System:
                 )
             return axs
         except:
+            print("Failed to plot!")
             return False
 
     def _muj_finalstate(self, j, t, table):

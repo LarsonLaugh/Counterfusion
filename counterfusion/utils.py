@@ -13,16 +13,24 @@
 # limitations under the License.
 
 import os
-import warnings, copy, random, json
+import random
+import json
 import numpy as np
 
-__all__ = ['generate_bynumber','check_blockstates_structure',
-           'check_blockstates_value','check_sequence_structure',
-           'check_sequence_value', 'system_to_json',
-           'edge_to_json','NumpyArrayEncoder']
+__all__ = [
+    "generate_bynumber",
+    "check_blockstates_structure",
+    "check_blockstates_value",
+    "check_sequence_structure",
+    "check_sequence_value",
+    "system_to_json",
+    "edge_to_json",
+    "NumpyArrayEncoder",
+]
+
 
 def generate_bynumber(messages):
-    """ Generate a sequence according to given messages.
+    """Generate a sequence according to given messages.
     A "message" should be formatted into a nested list structure, e.g.,
     [[0,1,0.4,3],[0,2,[0.3,0.1],5],[1,2,0.5,3]]. Inside the first item [0,1,0.4,3], the first
     two items 0 and 1 indicate which two edge states participate, the third item 0.4 gives
@@ -30,12 +38,13 @@ def generate_bynumber(messages):
     """
     seq_in_list = []
     for message in messages:
-        seq_in_list.extend([message[:3]]*message[3])
+        seq_in_list.extend([message[:3]] * message[3])
         random.shuffle(seq_in_list)
     return np.array(seq_in_list)
 
+
 def check_blockstates_structure(blockStates):
-    if not isinstance(blockStates,list):
+    if not isinstance(blockStates, list):
         return False
     for item in blockStates:
         # Check if each item in the data is a list of length 2
@@ -49,18 +58,20 @@ def check_blockstates_structure(blockStates):
             return False
     return True
 
-def check_blockstates_value(blockStates,totalNumMover,numTerminal):
+
+def check_blockstates_value(blockStates, totalNumMover, numTerminal):
     for item in blockStates:
-        if item[0]> numTerminal-1:
+        if item[0] > numTerminal - 1:
             return False
         else:
             for state in item[1]:
-                if state > totalNumMover-1:
+                if state > totalNumMover - 1:
                     return False
     return True
 
+
 def check_sequence_structure(sequence):
-    if not isinstance(sequence,np.ndarray):
+    if not isinstance(sequence, np.ndarray):
         return False
     sequence_list = sequence.tolist()
     for item in sequence_list:
@@ -68,63 +79,81 @@ def check_sequence_structure(sequence):
         if not (isinstance(item, list) and len(item) == 3):
             return False
         # Check if the first two elements are integers
-        if not all(isinstance(x, (int,float)) for x in item[:2]):
+        if not all(isinstance(x, (int, float)) for x in item[:2]):
             return False
         # Check if the third elements are floats
-        if not isinstance(item[2], (int,float)):
+        if not isinstance(item[2], (int, float)):
             return False
     return True
 
-def check_sequence_value(sequence,totalNumMover):
+
+def check_sequence_value(sequence, totalNumMover):
     sequence_list = sequence.tolist()
     for item in sequence_list:
-        if all(state>totalNumMover-1 for state in item[:2]):
+        if all(state > totalNumMover - 1 for state in item[:2]):
             return False
-        if item[2]>1 or item[2]<0:
+        if item[2] > 1 or item[2] < 0:
             return False
     return True
 
 
-def system_to_json(file_path,edgeSequence,edgeMat,stateInfo,nodesCurrent,sysMat,termVolts,blockStates):
+def system_to_json(
+    file_path,
+    edgeSequence,
+    edgeMat,
+    stateInfo,
+    nodesCurrent,
+    sysMat,
+    termVolts,
+    blockStates,
+):
     data = {
-        "edge information":{
-            "edgeSequence":edgeSequence,
-            "edgeMatrix":edgeMat,
-            "stateInformation":stateInfo
+        "edge information": {
+            "edgeSequence": edgeSequence,
+            "edgeMatrix": edgeMat,
+            "stateInformation": stateInfo,
         },
-        "system information":{
-            "nodesCurrent":nodesCurrent,
-            "systemMatrix":sysMat,
-            "terminalVoltages":termVolts,
-            "blockStates":blockStates}
+        "system information": {
+            "nodesCurrent": nodesCurrent,
+            "systemMatrix": sysMat,
+            "terminalVoltages": termVolts,
+            "blockStates": blockStates,
+        },
     }
     if os.path.exists(file_path):
         # Ask user for action
-        response = input(f"The file {file_path} already exists. Do you want to overwrite it? (yes/no): ").lower()
-        if response != 'yes':
+        response = input(
+            f"The file {file_path} already exists. Do you want to overwrite it? (yes/no): "
+        ).lower()
+        if response != "yes":
             print("Operation cancelled.")
             return
-    with open(file_path,'w') as f:
-            json.dump(data,f,indent=4,cls=NumpyArrayEncoder)
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4, cls=NumpyArrayEncoder)
     print(f"Data written to {file_path}")
 
-def edge_to_json(file_path,edgeSequence,edgeMat):
+
+def edge_to_json(file_path, edgeSequence, edgeMat):
     data = {
-            "edgeSequence":edgeSequence,
-            "edgeMatrix":edgeMat,
+        "edgeSequence": edgeSequence,
+        "edgeMatrix": edgeMat,
     }
     if os.path.exists(file_path):
         # Ask user for action
-        response = input(f"The file {file_path} already exists. Do you want to overwrite it? (yes/no): ").lower()
-        if response != 'yes':
+        response = input(
+            f"The file {file_path} already exists. Do you want to overwrite it? (yes/no): "
+        ).lower()
+        if response != "yes":
             print("Operation cancelled.")
             return
-    with open(file_path,'w') as f:
-            json.dump(data,f,indent=4,cls=NumpyArrayEncoder)
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4, cls=NumpyArrayEncoder)
     print(f"Data written to {file_path}")
+
 
 class NumpyArrayEncoder(json.JSONEncoder):
     """A custom JSON encoder that handles NumPy arrays"""
+
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
